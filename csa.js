@@ -3,6 +3,8 @@
  * @module csa
  */
 
+import { MIN_CONNECTION_TIME_SECONDS } from './parameters.js'
+
 /** Binary search: first index i where connections[i].dep_timestamp >= t0. */
 function lowerBound(connections, t0) {
 	let lo = 0,
@@ -17,6 +19,9 @@ function lowerBound(connections, t0) {
 
 /**
  * Run the Connection Scan Algorithm to find the earliest-arrival journey.
+ * The returned `path` is an array of legs:
+ *   { trip_id, dep_stop, dep_timestamp, arr_stop, arr_timestamp }
+ *
  * @param {Array}    connections  Sorted by dep_timestamp: { dep_stop, arr_stop, dep_timestamp, arr_timestamp, trip_id }
  * @param {string[]} origins     Stop IDs all reachable at t0
  * @param {string[]} dests       Target stop IDs
@@ -27,9 +32,12 @@ export function runCSA(connections, origins, dests, t0) {
 	const originSet = new Set(origins)
 	const destSet = new Set(dests)
 
-	const T = new Map() // stop → earliest known arrival time
-	const In = new Map() // stop → index of connection that last improved T[stop]
-	const inTrip = new Map() // trip_id → true once boarded
+	// earliest known arrival time at stop (seconds)
+	const T = new Map()
+	// index of connection that last improved T[stop]
+	const In = new Map()
+	// trip_id -> true once boarded
+	const inTrip = new Map()
 
 	for (const o of origins) T.set(o, t0)
 
@@ -44,10 +52,31 @@ export function runCSA(connections, origins, dests, t0) {
 		// Early termination: no later departure can beat the best arrival found
 		if (c.dep_timestamp > bestArrival) break
 
-		// Boardable if already riding this trip, or dep_stop is reachable in time
-		const canBoard =
-			inTrip.has(c.trip_id) ||
-			(T.has(c.dep_stop) && T.get(c.dep_stop) <= c.dep_timestamp)
+		// Determine if we can board connection `c`.
+		// - If already in the trip, we can board without further checks.
+		// - Otherwise, the departure stop must be reachable in time.
+		//   * If the reachability came from an origin (no In entry), allow boarding
+		//     as long as T[dep_stop] <= dep_timestamp (origin boarding).
+		//   * If the reachability came from another connection (transfer), require
+		//     additional MIN_CONNECTION_TIME_SECONDS.
+		let canBoard = false
+
+		if (inTrip.has(c.trip_id)) {
+			canBoard = true
+		} else if (T.has(c.dep_stop)) {
+			const arriveTime = T.get(c.dep_stop)
+			if (In.has(c.dep_stop)) {
+				// This arrival was produced by a previous connection → enforce min connection time.
+				if (arriveTime + MIN_CONNECTION_TIME_SECONDS <= c.dep_timestamp) {
+					canBoard = true
+				}
+			} else {
+				// Arrival comes from an origin (initial presence). Allow boarding if arrival <= dep.
+				if (arriveTime <= c.dep_timestamp) {
+					canBoard = true
+				}
+			}
+		}
 
 		if (!canBoard) continue
 
@@ -67,26 +96,56 @@ export function runCSA(connections, origins, dests, t0) {
 
 	if (bestDest === null) return { path: null, departureTime: 0, arrivalTime: 0 }
 
-	// Reconstruct path backwards from bestDest by following In[]
-	const path = []
+	// Reconstruct path of connections backwards from bestDest by following In[]
+	const connectionsPath = []
 	let stop = bestDest
 	const seen = new Set()
 	while (In.has(stop) && !seen.has(stop)) {
 		seen.add(stop)
 		const conn = connections[In.get(stop)]
-		path.push(conn)
+		connectionsPath.push(conn)
 		stop = conn.dep_stop
 		if (originSet.has(stop)) break
 	}
-	path.reverse()
+	connectionsPath.reverse()
 
-	if (path.length === 0 || !originSet.has(path[0].dep_stop)) {
+	// Validate that path starts at an origin
+	if (
+		connectionsPath.length === 0 ||
+		!originSet.has(connectionsPath[0].dep_stop)
+	) {
 		return { path: null, departureTime: 0, arrivalTime: 0 }
 	}
 
+	// Compress consecutive connections on the same trip into legs.
+	// Each leg is the contiguous span of connections with the same trip_id.
+	const legs = []
+	for (let i = 0; i < connectionsPath.length; ) {
+		const first = connectionsPath[i]
+		let j = i + 1
+		let last = first
+		while (
+			j < connectionsPath.length &&
+			connectionsPath[j].trip_id === first.trip_id
+		) {
+			last = connectionsPath[j]
+			j++
+		}
+		// Create compressed leg: board at first.dep_stop at first.dep_timestamp,
+		// alight at last.arr_stop at last.arr_timestamp.
+		legs.push({
+			trip_id: first.trip_id,
+			dep_stop: first.dep_stop,
+			dep_timestamp: first.dep_timestamp,
+			arr_stop: last.arr_stop,
+			arr_timestamp: last.arr_timestamp,
+		})
+		i = j
+	}
+
 	return {
-		path,
-		departureTime: path[0].dep_timestamp,
+		path: legs, // compressed legs only (no intermediate stops while on same trip)
+		departureTime: legs[0].dep_timestamp,
 		arrivalTime: bestArrival,
 	}
 }
