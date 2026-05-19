@@ -19,6 +19,7 @@ import {
 	loadGTFS,
 	materializeConnections,
 	findMatchingStops,
+	suggestStopNames,
 } from './gtfs-loader.js'
 import { findOptions } from './csa.js'
 
@@ -163,6 +164,32 @@ self.addEventListener('message', async ({ data }) => {
 
 	if (type === 'ping') {
 		self.postMessage({ type: 'pong', requestId })
+		return
+	}
+
+	if (type === 'autocomplete') {
+		try {
+			const { stopsByNorm, stopsById } = await ensureGTFS(requestId)
+			const suggestions = suggestStopNames(
+				data.query || '',
+				stopsByNorm,
+				stopsById,
+				8,
+			)
+			self.postMessage({
+				type: 'suggestions',
+				suggestions,
+				field: data.field,
+				requestId,
+			})
+		} catch (_err) {
+			self.postMessage({
+				type: 'suggestions',
+				suggestions: [],
+				field: data.field,
+				requestId,
+			})
+		}
 		return
 	}
 

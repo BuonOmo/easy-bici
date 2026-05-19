@@ -281,3 +281,41 @@ export function findMatchingStops(query, stopsByNorm) {
 	}
 	return results
 }
+
+/**
+ * Suggest up to `limit` unique stop display names whose normalised name starts
+ * with (prefix, ranked first) or contains (substring, ranked second) the
+ * normalised query.
+ *
+ * @param {string}               query
+ * @param {Map<string,string[]>} stopsByNorm   norm → [stop_id, …]
+ * @param {Map<string,Object>}   stopsById     stop_id → stop row
+ * @param {number}               [limit=8]
+ * @returns {string[]}
+ */
+export function suggestStopNames(query, stopsByNorm, stopsById, limit = 8) {
+	const norm = normalizeName(query)
+	if (norm.length < 2) return []
+
+	const prefixNames = new Set()
+	const substrNames = new Set()
+
+	for (const [key, ids] of stopsByNorm) {
+		const isPre = key.startsWith(norm)
+		const isSub = !isPre && key.includes(norm)
+		if (!isPre && !isSub) continue
+		const bucket = isPre ? prefixNames : substrNames
+		for (const id of ids) {
+			const stop = stopsById.get(id)
+			if (stop && stop.stop_name) bucket.add(stop.stop_name)
+		}
+	}
+
+	// Remove names already in the prefix bucket from the substring bucket
+	for (const name of prefixNames) substrNames.delete(name)
+
+	return [...prefixNames]
+		.sort()
+		.concat([...substrNames].sort())
+		.slice(0, limit)
+}
