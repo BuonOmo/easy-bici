@@ -381,14 +381,13 @@
 
     // Wire up worker messages
     worker.addEventListener('message', (e) => {
-      const { type, results, requestId, mock, message } = e.data || {};
+      const { type, results, requestId, message } = e.data || {};
       if (type === 'loading') {
         statusEl.innerHTML = '<span class="spinner" aria-hidden="true"></span> ' + (message || 'Loading…');
       } else if (type === 'results') {
         renderResults(results);
         const count = results ? results.length : 0;
-        statusEl.textContent = 'Found ' + count + ' option(s).'
-          + (mock ? ' (⚠ mock data — serve over HTTP to load real timetable)' : '');
+        statusEl.textContent = 'Found ' + count + ' option(s).';
         submitBtn.disabled = false;
       } else if (type === 'error') {
         statusEl.textContent = 'Error: ' + (e.data.error || 'unknown error');

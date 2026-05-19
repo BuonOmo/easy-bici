@@ -88,40 +88,6 @@ function formatOption({ path, arrivalTime }, stopsById) {
 	return { duration: totalMinutes, connexions }
 }
 
-// ── Mock data (fallback when GTFS unavailable) ────────────────────────────────
-
-function makeMockResults(query) {
-	const dep = query.departure || 'Departure'
-	const arr = query.arrival || 'Arrival'
-	const base = query.datetime ? new Date(query.datetime) : new Date()
-	// round up to nearest 15 minutes
-	const t = Math.ceil(base.getTime() / (15 * 60 * 1000)) * 15 * 60 * 1000
-
-	return Array.from({ length: MAX_RESULTS }, (_, i) => {
-		const start = t + i * 20 * 60 * 1000
-		const leg1Min = 20 + Math.floor(Math.random() * 30)
-		const leg2Min = 15 + Math.floor(Math.random() * 25)
-		const mid = dep + ' → (changement)'
-		return {
-			duration: leg1Min + leg2Min,
-			connexions: [
-				{
-					from: dep,
-					to: mid,
-					start: new Date(start).toISOString(),
-					duration: leg1Min,
-				},
-				{
-					from: mid,
-					to: arr,
-					start: new Date(start + (leg1Min + 5) * 60000).toISOString(),
-					duration: leg2Min,
-				},
-			],
-		}
-	})
-}
-
 // ── Search ────────────────────────────────────────────────────────────────────
 
 async function search(query, requestId) {
@@ -198,25 +164,12 @@ self.addEventListener('message', async ({ data }) => {
 	try {
 		const results = await search(query, requestId)
 
-		if (results.length === 0) {
-			// No routes found with real data – fall back to mock so the UI isn't empty
-			self.postMessage({
-				type: 'results',
-				results: makeMockResults(query),
-				requestId,
-				mock: true,
-			})
-		} else {
-			self.postMessage({ type: 'results', results, requestId })
-		}
+		self.postMessage({ type: 'results', results, requestId })
 	} catch (err) {
-		// GTFS unavailable or search error – return mock data with a flag
-		console.warn('[worker] Falling back to mock data:', err.message)
 		self.postMessage({
-			type: 'results',
-			results: makeMockResults(query),
+			type: 'error',
+			error: err.message || 'Unknown error',
 			requestId,
-			mock: true,
 		})
 	}
 })
