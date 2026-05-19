@@ -226,6 +226,39 @@
     }
     @keyframes spin{to{transform:rotate(360deg)}}
 
+    /* Autocomplete dropdown */
+    .ac-wrapper{position:relative;}
+    .ac-list{
+      position:absolute;
+      top:100%;
+      left:0;
+      right:0;
+      z-index:200;
+      margin:4px 0 0;
+      padding:4px 0;
+      list-style:none;
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:8px;
+      box-shadow:0 8px 24px var(--shadow);
+      max-height:260px;
+      overflow-y:auto;
+      display:none;
+    }
+    .ac-list.open{display:block;}
+    .ac-item{
+      padding:8px 12px;
+      cursor:pointer;
+      font-size:0.95rem;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .ac-item:hover,.ac-item[aria-selected="true"]{
+      background:var(--surface);
+      color:var(--accent);
+    }
+
     @media (max-width:900px){
       form.search-form{
         grid-template-columns: 1fr;
@@ -253,14 +286,18 @@
 
     <main class="card" role="main">
       <form id="searchForm" class="search-form" autocomplete="off" role="search" aria-label="Search connections">
-        <div class="field">
+        <div class="field ac-wrapper" id="departureWrapper">
           <label for="departure">Departure</label>
-          <input id="departure" name="departure" type="text" required placeholder="Station or address (e.g. Lyon Part-Dieu)" />
+          <input id="departure" name="departure" type="text" required placeholder="Station or address (e.g. Lyon Part-Dieu)"
+            autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="departureList" aria-haspopup="listbox" />
+          <ul id="departureList" class="ac-list" role="listbox" aria-label="Departure suggestions"></ul>
         </div>
 
-        <div class="field">
+        <div class="field ac-wrapper" id="arrivalWrapper">
           <label for="arrival">Arrival</label>
-          <input id="arrival" name="arrival" type="text" required placeholder="Station or address (e.g. Grenoble)" />
+          <input id="arrival" name="arrival" type="text" required placeholder="Station or address (e.g. Grenoble)"
+            autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="arrivalList" aria-haspopup="listbox" />
+          <ul id="arrivalList" class="ac-list" role="listbox" aria-label="Arrival suggestions"></ul>
         </div>
 
         <div class="field">
@@ -356,6 +393,9 @@
       } else if (type === 'error') {
         statusEl.textContent = 'Error: ' + (e.data.error || 'unknown error');
         submitBtn.disabled = false;
+      } else if (type === 'suggestions') {
+        const ac = e.data.field === 'departure' ? departureAC : arrivalAC;
+        if (ac) ac.show(e.data.suggestions || []);
       }
     });
 
@@ -365,6 +405,106 @@
       departureInput.value = arrivalInput.value;
       arrivalInput.value = tmp;
     });
+
+    // Autocomplete setup ---------------------------------------------------
+    function setupAutocomplete(inputEl, listEl, fieldName) {
+      let activeIdx = -1;
+      let debounceTimer = null;
+
+      function getItems() { return listEl.querySelectorAll('.ac-item'); }
+
+      function setActive(idx) {
+        const items = getItems();
+        activeIdx = Math.max(-1, Math.min(idx, items.length - 1));
+        items.forEach((el, i) => {
+          const on = i === activeIdx;
+          el.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        inputEl.setAttribute('aria-activedescendant',
+          activeIdx >= 0 ? (items[activeIdx] && items[activeIdx].id) || '' : '');
+      }
+
+      function hide() {
+        listEl.classList.remove('open');
+        listEl.innerHTML = '';
+        activeIdx = -1;
+        inputEl.setAttribute('aria-expanded', 'false');
+      }
+
+      function show(suggestions) {
+        listEl.innerHTML = '';
+        if (!suggestions || !suggestions.length) { hide(); return; }
+        suggestions.forEach((name, i) => {
+          const li = document.createElement('li');
+          li.id = 'ac-' + fieldName + '-' + i;
+          li.className = 'ac-item';
+          li.setAttribute('role', 'option');
+          li.setAttribute('aria-selected', 'false');
+          li.textContent = name;
+          li.addEventListener('mousedown', (ev) => {
+            ev.preventDefault();
+            inputEl.value = name;
+            hide();
+          });
+          listEl.appendChild(li);
+        });
+        listEl.classList.add('open');
+        inputEl.setAttribute('aria-expanded', 'true');
+        activeIdx = -1;
+      }
+
+      inputEl.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        const q = inputEl.value.trim();
+        if (q.length < 2) { hide(); return; }
+        debounceTimer = setTimeout(() => {
+          worker.postMessage({ type: 'autocomplete', query: q, field: fieldName, requestId: Date.now() });
+        }, 180);
+      });
+
+      inputEl.addEventListener('keydown', (ev) => {
+        const items = getItems();
+        if (ev.key === 'ArrowDown') {
+          ev.preventDefault();
+          setActive(activeIdx + 1);
+        } else if (ev.key === 'ArrowUp') {
+          ev.preventDefault();
+          setActive(activeIdx - 1);
+        } else if (ev.key === 'Enter' && activeIdx >= 0 && items[activeIdx]) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          inputEl.value = items[activeIdx].textContent;
+          hide();
+        } else if (ev.key === 'Escape') {
+          hide();
+        }
+      });
+
+      inputEl.addEventListener('blur', () => {
+        // Delay so mousedown on a list item fires first
+        setTimeout(hide, 160);
+      });
+
+      inputEl.addEventListener('focus', () => {
+        const q = inputEl.value.trim();
+        if (q.length >= 2) {
+          worker.postMessage({ type: 'autocomplete', query: q, field: fieldName, requestId: Date.now() });
+        }
+      });
+
+      return { show, hide };
+    }
+
+    const departureAC = setupAutocomplete(
+      departureInput,
+      document.getElementById('departureList'),
+      'departure'
+    );
+    const arrivalAC = setupAutocomplete(
+      arrivalInput,
+      document.getElementById('arrivalList'),
+      'arrival'
+    );
 
     // Submit form -> post to worker
     form.addEventListener('submit', (ev) => {
