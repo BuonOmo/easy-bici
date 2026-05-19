@@ -327,27 +327,7 @@
     // It expects messages of the form { type: 'search', query, requestId }
     // and posts back { type: 'results', results, requestId }.
     let worker;
-    try {
-      worker = new Worker('worker.js');
-    } catch (err) {
-      // If worker fails to load (e.g. opened via file:// without a server),
-      // fall back to a minimal inline mock implementation.
-      console.warn('Worker failed to start, falling back to inline mock:', err);
-      worker = {
-        listeners: [],
-        postMessage(msg) {
-          // emulate async behaviour
-          const { query, requestId } = msg || {};
-          setTimeout(() => {
-            const results = generateMockResults(query || {});
-            this.listeners.forEach(fn => fn({ data: { type: 'results', results, requestId } }));
-          }, 400 + Math.random() * 600);
-        },
-        addEventListener(ev, fn) {
-          if (ev === 'message') this.listeners.push(fn);
-        }
-      };
-    }
+    worker = new Worker('worker.js', { type: 'module' });
 
     // Keep map of pending requests if needed for ignoring stale responses
     const pendingRequests = new Map();
@@ -364,14 +344,18 @@
 
     // Wire up worker messages
     worker.addEventListener('message', (e) => {
-      const { type, results, requestId } = e.data || {};
-      if (type === 'results') {
-        // Optionally check pendingRequests to ignore stale results
+      const { type, results, requestId, mock, message } = e.data || {};
+      if (type === 'loading') {
+        statusEl.innerHTML = '<span class="spinner" aria-hidden="true"></span> ' + (message || 'Loading…');
+      } else if (type === 'results') {
         renderResults(results);
-        statusEl.textContent = 'Found ' + (results ? results.length : 0) + ' option(s).';
+        const count = results ? results.length : 0;
+        statusEl.textContent = 'Found ' + count + ' option(s).'
+          + (mock ? ' (⚠ mock data — serve over HTTP to load real timetable)' : '');
         submitBtn.disabled = false;
-      } else if (type === 'pong') {
-        // ignore for now
+      } else if (type === 'error') {
+        statusEl.textContent = 'Error: ' + (e.data.error || 'unknown error');
+        submitBtn.disabled = false;
       }
     });
 
@@ -405,19 +389,7 @@
       submitBtn.disabled = true;
       resultsEl.innerHTML = '';
 
-      try {
-        worker.postMessage({ type: 'search', query, requestId });
-      } catch (err) {
-        // In case worker.postMessage fails for non-worker fallback object
-        console.error('Failed sending to worker:', err);
-        // Attempt fallback
-        setTimeout(() => {
-          const results = generateMockResults(query);
-          renderResults(results);
-          statusEl.textContent = 'Found ' + (results ? results.length : 0) + ' option(s). (fallback)';
-          submitBtn.disabled = false;
-        }, 500);
-      }
+      worker.postMessage({ type: 'search', query, requestId });
     });
 
     // Helpers & rendering --------------------------------------------------
@@ -514,40 +486,6 @@
         submitBtn.click();
       }
     });
-
-    // If the worker was unavailable and we used fallback object, ensure generateMockResults is available
-    // Provide a local duplicate of the mock generator for fallback use
-    function generateMockResults(query) {
-      const dep = query && query.departure ? query.departure : 'A';
-      const arr
- = query && query.arrival ? query.arrival : 'B';
-      const baseTime = query && query.datetime ? new Date(query.datetime) : new Date();
-      baseTime.setSeconds(0,0);
-      const mins = baseTime.getMinutes();
-      baseTime.setMinutes(Math.ceil(mins/15)*15);
-
-      const options = [];
-      for (let i = 0; i < 3; i++) {
-        const legs = [];
-        let t = new Date(baseTime.getTime() + i * 20 * 60000);
-        const legCount = 2 + (i % 2);
-        let totalDuration = 0;
-        for (let j = 0; j < legCount; j++) {
-          const legDuration = 20 + Math.floor(Math.random() * 40);
-          legs.push({
-            from: j === 0 ? dep : (dep + ' via ' + (j)),
-            to: j === legCount - 1 ? arr : (dep + ' change ' + (j)),
-            start: new Date(t).toISOString(),
-            duration: legDuration
-          });
-          totalDuration += legDuration;
-          t = new Date(t.getTime() + (legDuration + 5 + Math.floor(Math.random() * 8)) * 60000);
-        }
-        options.push({ duration: totalDuration, connexions: legs });
-      }
-      options.sort((a,b) => a.duration - b.duration);
-      return options;
-    }
   </script>
 </body>
 </html>

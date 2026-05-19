@@ -10,6 +10,11 @@ a Github Action.
 
 - GTFS-RT is not used, and train schedules can be 1 day old. 
 
+# TODO
+
+- also filter stop_times in extract_bike_friendly script
+- later we should consider adding bike connection directly in
+  the trip search, since we know user has a bike!
 
 [^1]: https://arxiv.org/pdf/1703.05997
 [^2]: https://github.com/trainline-eu/csa-challenge
