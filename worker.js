@@ -33,6 +33,14 @@ const MAX_RESULTS = 3
 let gtfsData = null // populated after first successful load
 let loadingPromise = null // in-flight Promise while loading
 
+/**
+ * Ensure GTFS data is loaded, fetching timetable.bin on first call.
+ * Multiple concurrent callers share the same in-flight loadingPromise so the
+ * binary is never fetched more than once per worker lifetime.
+ *
+ * @param {string} requestId  Passed through to the 'loading' progress message.
+ * @returns {Promise<{rawConnections, stopsById, stopsByNorm, servicesByDate}>}
+ */
 async function ensureGTFS(requestId) {
 	if (gtfsData) return gtfsData
 
@@ -48,7 +56,7 @@ async function ensureGTFS(requestId) {
 				return data
 			})
 			.catch((err) => {
-				loadingPromise = null // allow retry on next search
+				loadingPromise = null // allow retry on next request
 				throw err
 			})
 	}

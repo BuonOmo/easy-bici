@@ -1,5 +1,6 @@
 /**
  * GTFS data loader for a web worker context (uses fetch).
+ * Parses the VTER v1 binary timetable format produced by scripts/build_timetable.rb.
  * @module gtfs-loader
  */
 
@@ -10,7 +11,7 @@
  * @param {string} name
  * @returns {string}
  */
-function normalizeName(name) {
+export function normalizeName(name) {
 	return name
 		.toLowerCase()
 		.normalize('NFD')
@@ -20,122 +21,208 @@ function normalizeName(name) {
 		.replace(/\s+/g, ' ')
 }
 
-/**
- * Parse a GTFS HH:MM:SS time string (hours may be >= 24) to seconds since midnight.
- * @param {string} s
- * @returns {number}
- */
-function parseGTFSTime(s) {
-	const c1 = s.indexOf(':')
-	const c2 = s.indexOf(':', c1 + 1)
-	return +s.slice(0, c1) * 3600 + +s.slice(c1 + 1, c2) * 60 + +s.slice(c2 + 1)
-}
+// ---------- binary parser ----------
 
 /**
- * Minimal CSV parser. Handles BOM and \r\n line endings.
- * Does NOT support quoted fields containing commas.
- * @param {string} text
- * @returns {Object[]}
- */
-function parseCSV(text) {
-	if (!text) return []
-	if (text.charCodeAt(0) === 0xfeff) text = text.slice(1) // strip BOM
-	const lines = text.split('\n')
-	if (lines.length < 2) return []
-	const headers = lines[0].replace(/\r$/, '').split(',')
-	const rows = []
-	for (let i = 1; i < lines.length; i++) {
-		const line = lines[i].replace(/\r$/, '')
-		if (!line) continue
-		const vals = line.split(',')
-		const row = {}
-		for (let j = 0; j < headers.length; j++) row[headers[j]] = vals[j] ?? ''
-		rows.push(row)
-	}
-	return rows
-}
-
-/**
- * Fast line-scanner for stop_times.txt.
- * Extracts only columns 0–4 (trip_id, arrival_time, departure_time, stop_id, stop_sequence).
- * All rows are processed — bike-friendly filtering is done at preprocessing time.
+ * Parse a VTER v1 binary timetable ArrayBuffer.
  *
- * @param {string}              text       Raw file text
- * @param {Map<string, string>} tripService trip_id → service_id
- * @param {Map<string, Array>}  tripStops  Output: trip_id → stop entries
+ * Binary layout:
+ *   Header (24 bytes):
+ *     [0-3]   ASCII "VTER"
+ *     [4-7]   uint32 LE  format_version = 1
+ *     [8-9]   uint16 LE  num_stops
+ *     [10-11] uint16 LE  num_services
+ *     [12-13] uint16 LE  num_trips   (count only)
+ *     [14-15] uint16 LE  reserved
+ *     [16-19] uint32 LE  num_connections
+ *     [20-23] uint32 LE  num_calendar_entries
+ *
+ *   Stops section (num_stops variable-length records):
+ *     uint16 LE  stop_id byte length
+ *     N bytes    stop_id UTF-8
+ *     uint16 LE  stop_name byte length
+ *     M bytes    stop_name UTF-8
+ *     float32 LE latitude
+ *     float32 LE longitude
+ *
+ *   Services section (num_services variable-length records):
+ *     uint16 LE  service_id byte length
+ *     N bytes    service_id UTF-8
+ *
+ *   Calendar section (num_calendar_entries × 6 bytes, sorted by date):
+ *     uint32 LE  date as YYYYMMDD integer (e.g. 20260706)
+ *     uint16 LE  service_idx
+ *
+ *   Connections section (num_connections × 16 bytes, sorted by dep_secs):
+ *     uint16 LE  dep_stop_idx
+ *     uint16 LE  arr_stop_idx
+ *     uint32 LE  dep_secs
+ *     uint32 LE  arr_secs
+ *     uint16 LE  trip_idx
+ *     uint16 LE  service_idx
+ *
+ * @param {ArrayBuffer} arrayBuffer
+ * @returns {{
+ *   rawConnections: Array,
+ *   stopsById:      Map<string, Object>,
+ *   stopsByNorm:    Map<string, string[]>,
+ *   servicesByDate: Map<string, Set<string>>
+ * }}
+ * @throws {Error} if magic bytes are not "VTER" or format_version !== 1
  */
-function scanStopTimes(text, tripService, tripStops) {
-	if (!text) return
-	if (text.charCodeAt(0) === 0xfeff) text = text.slice(1)
+export function parseTimetable(arrayBuffer) {
+	const view = new DataView(arrayBuffer)
+	const decoder = new TextDecoder()
 
-	let pos = text.indexOf('\n') + 1 // skip header line
-	const len = text.length
+	// ── Validate header ────────────────────────────────────────────────────────
 
-	while (pos < len) {
-		let lineEnd = text.indexOf('\n', pos)
-		if (lineEnd === -1) lineEnd = len
-
-		// column 0: trip_id (ends at first comma)
-		const c0 = text.indexOf(',', pos)
-		if (c0 < 0 || c0 >= lineEnd) {
-			pos = lineEnd + 1
-			continue
-		}
-		const trip_id = text.slice(pos, c0)
-
-		// Skip rows whose trip_id is unknown (not in trips.txt)
-		if (!tripService.has(trip_id)) {
-			pos = lineEnd + 1
-			continue
-		}
-
-		// column 1: arrival_time
-		const c1 = text.indexOf(',', c0 + 1)
-		if (c1 < 0 || c1 >= lineEnd) {
-			pos = lineEnd + 1
-			continue
-		}
-
-		// column 2: departure_time
-		const c2 = text.indexOf(',', c1 + 1)
-		if (c2 < 0 || c2 >= lineEnd) {
-			pos = lineEnd + 1
-			continue
-		}
-
-		// column 3: stop_id
-		const c3 = text.indexOf(',', c2 + 1)
-		if (c3 < 0 || c3 >= lineEnd) {
-			pos = lineEnd + 1
-			continue
-		}
-
-		// column 4: stop_sequence (ends at next comma or line end)
-		const c4 = text.indexOf(',', c3 + 1)
-		const seqEnd = c4 < 0 || c4 >= lineEnd ? lineEnd : c4
-
-		const arr_secs = parseGTFSTime(text.slice(c0 + 1, c1))
-		const dep_secs = parseGTFSTime(text.slice(c1 + 1, c2))
-		const stop_id = text.slice(c2 + 1, c3)
-		const stop_sequence = parseInt(text.slice(c3 + 1, seqEnd), 10)
-
-		let arr = tripStops.get(trip_id)
-		if (!arr) {
-			arr = []
-			tripStops.set(trip_id, arr)
-		}
-		arr.push({ stop_id, arr_secs, dep_secs, stop_sequence })
-
-		pos = lineEnd + 1
+	const magic = String.fromCharCode(
+		view.getUint8(0),
+		view.getUint8(1),
+		view.getUint8(2),
+		view.getUint8(3),
+	)
+	if (magic !== 'VTER') {
+		throw new Error(
+			`Invalid timetable file: expected magic "VTER", got "${magic}"`,
+		)
 	}
+
+	const formatVersion = view.getUint32(4, true)
+	if (formatVersion !== 1) {
+		throw new Error(
+			`Unsupported VTER format version: ${formatVersion} (only version 1 is supported)`,
+		)
+	}
+
+	const numStops = view.getUint16(8, true)
+	const numServices = view.getUint16(10, true)
+	// numTrips              = view.getUint16(12, true)  — count only, strings not stored
+	// reserved              = view.getUint16(14, true)
+	const numConnections = view.getUint32(16, true)
+	const numCalendarEntries = view.getUint32(20, true)
+
+	let offset = 24
+
+	// ── Parse stops ────────────────────────────────────────────────────────────
+
+	/** @type {string[]} index → stop_id */
+	const stopIdsByIdx = []
+	/** @type {Map<string, {stop_id: string, stop_name: string, stop_lat: number, stop_lon: number}>} */
+	const stopsById = new Map()
+	/** @type {Map<string, string[]>} */
+	const stopsByNorm = new Map()
+
+	for (let i = 0; i < numStops; i++) {
+		const idLen = view.getUint16(offset, true)
+		offset += 2
+		const stopId = decoder.decode(new Uint8Array(arrayBuffer, offset, idLen))
+		offset += idLen
+
+		const nameLen = view.getUint16(offset, true)
+		offset += 2
+		const stopName = decoder.decode(
+			new Uint8Array(arrayBuffer, offset, nameLen),
+		)
+		offset += nameLen
+
+		const lat = view.getFloat32(offset, true)
+		offset += 4
+		const lon = view.getFloat32(offset, true)
+		offset += 4
+
+		stopIdsByIdx.push(stopId)
+		stopsById.set(stopId, {
+			stop_id: stopId,
+			stop_name: stopName,
+			stop_lat: lat,
+			stop_lon: lon,
+		})
+
+		const norm = normalizeName(stopName)
+		if (norm) {
+			let list = stopsByNorm.get(norm)
+			if (!list) {
+				list = []
+				stopsByNorm.set(norm, list)
+			}
+			list.push(stopId)
+		}
+	}
+
+	// ── Parse services ─────────────────────────────────────────────────────────
+
+	/** @type {string[]} index → service_id */
+	const serviceIdsByIdx = []
+
+	for (let i = 0; i < numServices; i++) {
+		const idLen = view.getUint16(offset, true)
+		offset += 2
+		const serviceId = decoder.decode(new Uint8Array(arrayBuffer, offset, idLen))
+		offset += idLen
+		serviceIdsByIdx.push(serviceId)
+	}
+
+	// ── Parse calendar ─────────────────────────────────────────────────────────
+
+	/** @type {Map<string, Set<string>>} "YYYYMMDD" → Set<service_id> */
+	const servicesByDate = new Map()
+
+	for (let i = 0; i < numCalendarEntries; i++) {
+		const dateInt = view.getUint32(offset, true) // e.g. 20260706
+		offset += 4
+		const serviceIdx = view.getUint16(offset, true)
+		offset += 2
+
+		const dateStr = String(dateInt) // → "20260706"
+		const serviceId = serviceIdsByIdx[serviceIdx]
+
+		let set = servicesByDate.get(dateStr)
+		if (!set) {
+			set = new Set()
+			servicesByDate.set(dateStr, set)
+		}
+		set.add(serviceId)
+	}
+
+	// ── Parse connections ──────────────────────────────────────────────────────
+
+	/** @type {Array<{dep_stop: string, arr_stop: string, dep_secs: number, arr_secs: number, trip_id: number, service_id: string}>} */
+	const rawConnections = []
+
+	for (let i = 0; i < numConnections; i++) {
+		const depStopIdx = view.getUint16(offset, true)
+		offset += 2
+		const arrStopIdx = view.getUint16(offset, true)
+		offset += 2
+		const depSecs = view.getUint32(offset, true)
+		offset += 4
+		const arrSecs = view.getUint32(offset, true)
+		offset += 4
+		const tripIdx = view.getUint16(offset, true)
+		offset += 2
+		const serviceIdx = view.getUint16(offset, true)
+		offset += 2
+
+		rawConnections.push({
+			dep_stop: stopIdsByIdx[depStopIdx],
+			arr_stop: stopIdsByIdx[arrStopIdx],
+			dep_secs: depSecs,
+			arr_secs: arrSecs,
+			trip_id: tripIdx, // integer; CSA only uses it as a Map key
+			service_id: serviceIdsByIdx[serviceIdx],
+		})
+	}
+	// rawConnections is already sorted by dep_secs per the VTER spec
+
+	return { rawConnections, stopsById, stopsByNorm, servicesByDate }
 }
 
 // ---------- public exports ----------
 
 /**
- * Load all required GTFS files and return parsed data structures.
- * Assumes the GTFS files have already been preprocessed by
- * scripts/extract_bike_friendly.rb to remove non-bike-friendly entries.
+ * Fetch and parse the VTER v1 binary timetable for the given base path.
+ * Caching is the caller's responsibility (see worker.js ensureGTFS).
  *
  * @param {string} basePath  URL/path prefix for the GTFS directory (no trailing slash needed)
  * @returns {Promise<{
@@ -146,77 +233,15 @@ function scanStopTimes(text, tripService, tripStops) {
  * }>}
  */
 export async function loadGTFS(basePath) {
-	const base = basePath.replace(/\/$/, '') + '/'
-	const get = (name) =>
-		fetch(base + name)
-			.then((r) => (r.ok ? r.text() : ''))
-			.catch(() => '')
-
-	const [stopsText, tripsText, stopTimesText, calText] = await Promise.all([
-		get('stops.txt'),
-		get('trips.txt'),
-		get('stop_times.txt'),
-		get('calendar_dates.txt'),
-	])
-
-	// --- stops ---
-	const stopsById = new Map()
-	const stopsByNorm = new Map()
-	for (const row of parseCSV(stopsText)) {
-		stopsById.set(row.stop_id, row)
-		const norm = normalizeName(row.stop_name || '')
-		if (!norm) continue
-		let list = stopsByNorm.get(norm)
-		if (!list) {
-			list = []
-			stopsByNorm.set(norm, list)
-		}
-		list.push(row.stop_id)
+	const base = basePath.replace(/\/$/, '')
+	const res = await fetch(`${base}/timetable.bin`)
+	if (!res.ok) {
+		throw new Error(
+			`Failed to fetch timetable.bin: ${res.status} ${res.statusText}`,
+		)
 	}
-
-	// --- trips: build trip_id → service_id map ---
-	const tripService = new Map()
-	for (const row of parseCSV(tripsText)) {
-		if (row.trip_id) tripService.set(row.trip_id, row.service_id)
-	}
-
-	// --- calendar_dates ---
-	const servicesByDate = new Map()
-	for (const row of parseCSV(calText)) {
-		if (row.exception_type !== '1') continue
-		let set = servicesByDate.get(row.date)
-		if (!set) {
-			set = new Set()
-			servicesByDate.set(row.date, set)
-		}
-		set.add(row.service_id)
-	}
-
-	// --- stop_times (fast scanner) ---
-	const tripStops = new Map() // trip_id → [{stop_id, arr_secs, dep_secs, stop_sequence}]
-	scanStopTimes(stopTimesText, tripService, tripStops)
-
-	// --- build raw connections from consecutive stop pairs ---
-	const rawConnections = []
-	for (const [trip_id, stops] of tripStops) {
-		stops.sort((a, b) => a.stop_sequence - b.stop_sequence)
-		const service_id = tripService.get(trip_id)
-		for (let i = 0; i + 1 < stops.length; i++) {
-			rawConnections.push({
-				dep_stop: stops[i].stop_id,
-				arr_stop: stops[i + 1].stop_id,
-				dep_secs: stops[i].dep_secs,
-				arr_secs: stops[i + 1].arr_secs,
-				trip_id,
-				service_id,
-			})
-		}
-	}
-
-	// rawConnections sorted by dep_secs (ascending)
-	rawConnections.sort((a, b) => a.dep_secs - b.dep_secs)
-
-	return { rawConnections, stopsById, stopsByNorm, servicesByDate }
+	const buffer = await res.arrayBuffer()
+	return parseTimetable(buffer)
 }
 
 /**
@@ -224,8 +249,8 @@ export async function loadGTFS(basePath) {
  * to absolute Unix timestamps using the local midnight of that date.
  * If servicesByDate has no entry for queryDate, all connections are included.
  *
- * @param {Array}  rawConnections   From loadGTFS()
- * @param {Map}    servicesByDate   From loadGTFS()
+ * @param {Array}  rawConnections   From parseTimetable() / loadGTFS()
+ * @param {Map}    servicesByDate   From parseTimetable() / loadGTFS()
  * @param {string} queryDate        YYYYMMDD
  * @returns {Array}  Connections sorted by dep_timestamp, each:
  *                   { dep_stop, arr_stop, dep_timestamp, arr_timestamp, trip_id }
