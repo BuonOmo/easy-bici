@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Voyage TER — Search</title>
+
+  <!-- Catppuccin palette (contains variables for multiple flavors: latte, macchiato, mocha, frappe) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@catppuccin/palette/css/catppuccin.css">
+
+  <style>
+    /*
+      Theme mapping:
+      - Light theme uses Catppuccin 'latte'
+      - Dark theme uses Catppuccin 'macchiato'
+      We map a small set of semantic variables used in the UI to the palette variables.
+    */
+    :root{
+      /* fallback semantic tokens (will be overridden by theme-specific mappings) */
+      --bg: #f7f8fb;
+      --card: #ffffff;
+      --muted: #6b7280;
+      --accent: #0366d6;
+      --border: #e6e9ef;
+      --text: #0f172a;
+      --surface: #ffffff;
+      --shadow: rgba(12,18,31,0.06);
+      --glass: rgba(255,255,255,0.8);
+    }
+
+    /* Light: Catppuccin latte */
+    :root {
+      /* latte variables exist as --ctp-latte-... from the imported stylesheet */
+      --bg: var(--ctp-latte-base);
+      --card: var(--ctp-latte-surface0);
+      --muted: var(--ctp-latte-subtext0);
+      --accent: var(--ctp-latte-blue);
+      --border: var(--ctp-latte-mantle);
+      --text: var(--ctp-latte-text);
+      --surface: var(--ctp-latte-surface1);
+      --shadow: rgba(12, 18, 31, 0.06);
+      --glass: rgba(var(--ctp-latte-base-rgb), 0.85);
+    }
+
+    /* Dark: Catppuccin macchiato */
+    [data-theme="dark"] {
+      --bg: var(--ctp-macchiato-base);
+      --card: var(--ctp-macchiato-surface0);
+      --muted: var(--ctp-macchiato-subtext0);
+      --accent: var(--ctp-macchiato-blue);
+      --border: var(--ctp-macchiato-mantle);
+      --text: var(--ctp-macchiato-text);
+      --surface: var(--ctp-macchiato-surface1);
+      --shadow: rgba(0,0,0,0.32);
+      --glass: rgba(var(--ctp-macchiato-base-rgb), 0.7);
+    }
+
+    /* Basic layout & components */
+    html,body{
+      height:100%;
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    .container{
+      max-width:980px;
+      margin:36px auto;
+      padding:20px;
+    }
+
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:18px;
+    }
+
+    .brand {
+      display:flex;
+      gap:12px;
+      align-items:baseline;
+      line-height:1;
+    }
+    h1 {
+      margin:0;
+      font-size:1.25rem;
+      letter-spacing:-0.2px;
+    }
+    p.lead {
+      margin:0;
+      color:var(--muted);
+      font-size:0.95rem;
+    }
+
+    .theme-toggle {
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .theme-toggle button {
+      background:transparent;
+      border:1px solid var(--border);
+      padding:8px 10px;
+      border-radius:8px;
+      cursor:pointer;
+      color:var(--text);
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+    }
+    .theme-toggle button.active {
+      background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
+      box-shadow: 0 6px 18px var(--shadow);
+      border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+    }
+
+    .card{
+      background: linear-gradient(180deg, var(--card), rgba(255,255,255,0.01));
+      border-radius:12px;
+      padding:18px;
+      box-shadow: 0 6px 18px var(--shadow);
+      border:1px solid var(--border);
+    }
+
+    form.search-form{
+      display:grid;
+      grid-template-columns: 1fr 1fr 260px auto;
+      gap:10px;
+      align-items:end;
+      margin-bottom:14px;
+    }
+    label{font-size:0.85rem;color:var(--muted);display:block;margin-bottom:6px}
+    .field{display:flex;flex-direction:column;}
+    input[type="text"], input[type="datetime-local"]{
+      padding:10px 12px;
+      border:1px solid var(--border);
+      border-radius:8px;
+      font-size:0.95rem;
+      width:100%;
+      box-sizing:border-box;
+      background:var(--surface);
+      color:var(--text);
+    }
+    input::placeholder{color:var(--muted);opacity:0.8}
+
+    .reverse-btn{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding:8px 12px;
+      border-radius:8px;
+      border:1px solid var(--border);
+      background:var(--glass);
+      cursor:pointer;
+      font-size:0.95rem;
+      color:var(--text);
+    }
+    .reverse-btn:active{transform:translateY(1px)}
+
+    .controls{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    button.primary{
+      background:var(--accent);
+      color: white;
+      border:none;
+      padding:10px 14px;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:600;
+    }
+    button.primary:disabled{opacity:0.6;cursor:not-allowed}
+
+    .results{
+      margin-top:14px;
+      display:grid;
+      gap:12px;
+    }
+
+    .result{
+      border-radius:10px;
+      padding:12px;
+      background: linear-gradient(180deg, var(--card), var(--surface));
+      border:1px solid var(--border);
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+    }
+    .summary{
+      min-width:220px;
+      flex:0 0 260px;
+      border-right:1px dashed var(--border);
+      padding-right:12px;
+    }
+    .summary .dur{font-weight:700;font-size:1.05rem}
+    .summary .time{color:var(--muted);font-size:0.95rem;margin-top:6px}
+    .conn-list{flex:1}
+    .conn{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:10px;
+      border-radius:8px;
+      border:1px solid var(--border);
+      margin-bottom:8px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.01));
+    }
+    .conn .fromto{flex:1}
+    .conn .start{font-weight:600}
+    .muted{color:var(--muted);font-size:0.9rem}
+    .note{font-size:0.85rem;color:var(--muted);margin-top:8px}
+
+    .spinner{
+      display:inline-block;
+      width:18px;height:18px;border-radius:50%;
+      border:3px solid rgba(0,0,0,0.08);
+      border-top-color:var(--accent);
+      animation:spin 1s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    @media (max-width:900px){
+      form.search-form{
+        grid-template-columns: 1fr;
+      }
+      .summary{min-width:0;flex-basis:auto;border-right:none;padding-right:0}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div>
+          <h1>Voyage TER</h1></div>
+          <p class="lead">Shortest bike-friendly train paths — demo</p>
+        </div>
+      </div>
+
+      <div class="theme-toggle" aria-hidden="false">
+        <button id="lightBtn" title="Light (Catppuccin — Latte)">☀️ Light</button>
+        <button id="darkBtn" title="Dark (Catppuccin — Macchiato)">🌙 Dark</button>
+      </div>
+    </header>
+
+    <main class="card" role="main">
+      <form id="searchForm" class="search-form" autocomplete="off" role="search" aria-label="Search connections">
+        <div class="field">
+          <label for="departure">Departure</label>
+          <input id="departure" name="departure" type="text" required placeholder="Station or address (e.g. Lyon Part-Dieu)" />
+        </div>
+
+        <div class="field">
+          <label for="arrival">Arrival</label>
+          <input id="arrival" name="arrival" type="text" required placeholder="Station or address (e.g. Grenoble)" />
+        </div>
+
+        <div class="field">
+          <label for="datetime">Departure date & time</label>
+          <input id="datetime" name="datetime" type="datetime-local" />
+        </div>
+
+        <div class="controls">
+          <button type="button" id="reverseBtn" class="reverse-btn" title="Swap departure and arrival">⇄ Reverse</button>
+          <button id="submitBtn" class="primary" type="submit">Search</button>
+        </div>
+      </form>
+
+      <div id="status" class="muted" aria-live="polite" style="margin-top:10px"></div>
+
+      <div id="results" class="results" aria-live="polite" style="margin-top:12px"></div>
+    </main>
+
+  </div>
+
+  <script>
+    // Theme toggle logic ----------------------------------------------------
+    (function () {
+      const lightBtn = document.getElementById('lightBtn');
+      const darkBtn = document.getElementById('darkBtn');
+
+      const THEME_KEY = 'voyage-ter:theme';
+      const valid = new Set(['light', 'dark']);
+
+      function applyTheme(theme) {
+        const t = valid.has(theme) ? theme : 'light';
+        if (t === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          darkBtn.classList.add('active');
+          lightBtn.classList.remove('active');
+        } else {
+          document.documentElement.removeAttribute('data-theme');
+          darkBtn.classList.remove('active');
+          lightBtn.classList.add('active');
+        }
+        try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
+      }
+
+      // initial theme: persisted -> prefers-color-scheme -> light
+      function initialTheme() {
+        try {
+          const stored = localStorage.getItem(THEME_KEY);
+          if (stored && valid.has(stored)) return stored;
+        } catch (e) {}
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          return 'dark';
+        }
+        return 'light';
+      }
+
+      lightBtn.addEventListener('click', () => applyTheme('light'));
+      darkBtn.addEventListener('click', () => applyTheme('dark'));
+
+      applyTheme(initialTheme());
+    })();
+
+    // Worker setup ----------------------------------------------------------
+    // Worker script has been extracted to ./worker.js (same directory).
+    // It expects messages of the form { type: 'search', query, requestId }
+    // and posts back { type: 'results', results, requestId }.
+    let worker;
+    try {
+      worker = new Worker('worker.js');
+    } catch (err) {
+      // If worker fails to load (e.g. opened via file:// without a server),
+      // fall back to a minimal inline mock implementation.
+      console.warn('Worker failed to start, falling back to inline mock:', err);
+      worker = {
+        listeners: [],
+        postMessage(msg) {
+          // emulate async behaviour
+          const { query, requestId } = msg || {};
+          setTimeout(() => {
+            const results = generateMockResults(query || {});
+            this.listeners.forEach(fn => fn({ data: { type: 'results', results, requestId } }));
+          }, 400 + Math.random() * 600);
+        },
+        addEventListener(ev, fn) {
+          if (ev === 'message') this.listeners.push(fn);
+        }
+      };
+    }
+
+    // Keep map of pending requests if needed for ignoring stale responses
+    const pendingRequests = new Map();
+
+    // DOM elements
+    const form = document.getElementById('searchForm');
+    const departureInput = document.getElementById('departure');
+    const arrivalInput = document.getElementById('arrival');
+    const datetimeInput = document.getElementById('datetime');
+    const resultsEl = document.getElementById('results');
+    const statusEl = document.getElementById('status');
+    const reverseBtn = document.getElementById('reverseBtn');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Wire up worker messages
+    worker.addEventListener('message', (e) => {
+      const { type, results, requestId } = e.data || {};
+      if (type === 'results') {
+        // Optionally check pendingRequests to ignore stale results
+        renderResults(results);
+        statusEl.textContent = 'Found ' + (results ? results.length : 0) + ' option(s).';
+        submitBtn.disabled = false;
+      } else if (type === 'pong') {
+        // ignore for now
+      }
+    });
+
+    // Swap departure/arrival
+    reverseBtn.addEventListener('click', () => {
+      const tmp = departureInput.value;
+      departureInput.value = arrivalInput.value;
+      arrivalInput.value = tmp;
+    });
+
+    // Submit form -> post to worker
+    form.addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      const dep = departureInput.value.trim();
+      const arr = arrivalInput.value.trim();
+      if (!dep || !arr) {
+        statusEl.textContent = 'Please fill both departure and arrival.';
+        return;
+      }
+
+      const query = {
+        departure: dep,
+        arrival: arr,
+        datetime: datetimeInput.value || null
+      };
+
+      const requestId = Date.now() + Math.random();
+      pendingRequests.set(requestId, { query, time: Date.now() });
+
+      statusEl.innerHTML = '<span class="spinner" aria-hidden="true"></span> Searching...';
+      submitBtn.disabled = true;
+      resultsEl.innerHTML = '';
+
+      try {
+        worker.postMessage({ type: 'search', query, requestId });
+      } catch (err) {
+        // In case worker.postMessage fails for non-worker fallback object
+        console.error('Failed sending to worker:', err);
+        // Attempt fallback
+        setTimeout(() => {
+          const results = generateMockResults(query);
+          renderResults(results);
+          statusEl.textContent = 'Found ' + (results ? results.length : 0) + ' option(s). (fallback)';
+          submitBtn.disabled = false;
+        }, 500);
+      }
+    });
+
+    // Helpers & rendering --------------------------------------------------
+    function renderResults(results) {
+      resultsEl.innerHTML = '';
+      if (!results || results.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'muted';
+        empty.textContent = 'No results.';
+        resultsEl.appendChild(empty);
+        return;
+      }
+
+      results.forEach((opt, idx) => {
+        const item = document.createElement('div');
+        item.className = 'result';
+
+        const summary = document.createElement('div');
+        summary.className = 'summary';
+        const dur = document.createElement('div');
+        dur.className = 'dur';
+        dur.textContent = formatDuration(opt.duration);
+        const time = document.createElement('div');
+        time.className = 'time';
+        const firstStart = opt.connexions && opt.connexions.length ? opt.connexions[0].start : null;
+        time.textContent = firstStart ? 'Departs ' + (new Date(firstStart)).toLocaleString() : '';
+        summary.appendChild(dur);
+        summary.appendChild(time);
+
+        const connList = document.createElement('div');
+        connList.className = 'conn-list';
+        opt.connexions.forEach((c) => {
+          const cdiv = document.createElement('div');
+          cdiv.className = 'conn';
+          const fromto = document.createElement('div');
+          fromto.className = 'fromto';
+          const ft1 = document.createElement('div');
+          ft1.innerHTML = '<strong>' + escapeHtml(c.from) + '</strong> → <strong>' + escapeHtml(c.to) + '</strong>';
+          const ft2 = document.createElement('div');
+          ft2.className = 'muted';
+          ft2.textContent = 'Duration: ' + formatDuration(c.duration);
+          fromto.appendChild(ft1);
+          fromto.appendChild(ft2);
+
+          const start = document.createElement('div');
+          start.className = 'start';
+          start.textContent = (new Date(c.start)).toLocaleString();
+
+          cdiv.appendChild(fromto);
+          cdiv.appendChild(start);
+          connList.appendChild(cdiv);
+        });
+
+        item.appendChild(summary);
+        item.appendChild(connList);
+        resultsEl.appendChild(item);
+      });
+    }
+
+    function formatDuration(mins) {
+      if (mins == null) return '';
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      if (h > 0) return h + 'h ' + m + 'm';
+      return m + 'm';
+    }
+
+    function escapeHtml(s){
+      if(!s) return '';
+      return String(s)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    // Prefill example values and default datetime
+    departureInput.value = 'Lyon Part-Dieu';
+    arrivalInput.value = 'Grenoble';
+    (function setDefaultDatetime(){
+      const now = new Date();
+      now.setSeconds(0,0);
+      const mins = now.getMinutes();
+      now.setMinutes(Math.ceil(mins/15)*15);
+      const pad = (n) => String(n).padStart(2,'0');
+      const loc = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate()) + 'T' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+      datetimeInput.value = loc;
+    })();
+
+    // Allow Ctrl/Cmd+Enter keyboard shortcut to submit
+    form.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        submitBtn.click();
+      }
+    });
+
+    // If the worker was unavailable and we used fallback object, ensure generateMockResults is available
+    // Provide a local duplicate of the mock generator for fallback use
+    function generateMockResults(query) {
+      const dep = query && query.departure ? query.departure : 'A';
+      const arr
+ = query && query.arrival ? query.arrival : 'B';
+      const baseTime = query && query.datetime ? new Date(query.datetime) : new Date();
+      baseTime.setSeconds(0,0);
+      const mins = baseTime.getMinutes();
+      baseTime.setMinutes(Math.ceil(mins/15)*15);
+
+      const options = [];
+      for (let i = 0; i < 3; i++) {
+        const legs = [];
+        let t = new Date(baseTime.getTime() + i * 20 * 60000);
+        const legCount = 2 + (i % 2);
+        let totalDuration = 0;
+        for (let j = 0; j < legCount; j++) {
+          const legDuration = 20 + Math.floor(Math.random() * 40);
+          legs.push({
+            from: j === 0 ? dep : (dep + ' via ' + (j)),
+            to: j === legCount - 1 ? arr : (dep + ' change ' + (j)),
+            start: new Date(t).toISOString(),
+            duration: legDuration
+          });
+          totalDuration += legDuration;
+          t = new Date(t.getTime() + (legDuration + 5 + Math.floor(Math.random() * 8)) * 60000);
+        }
+        options.push({ duration: totalDuration, connexions: legs });
+      }
+      options.sort((a,b) => a.duration - b.duration);
+      return options;
+    }
+  </script>
+</body>
+</html>
