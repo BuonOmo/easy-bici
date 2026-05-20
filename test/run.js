@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * CLI test runner for voyage-ter.
+ * CLI test runner for easy-bici.
  *
  * Reads data/timetable.bin directly from the filesystem (no HTTP server
  * needed) and delegates all test cases to test/tip-tests.js, which is

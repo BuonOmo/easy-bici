@@ -21,7 +21,7 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width,initial-scale=1" />
-		<title data-i18n="page.title">Voyage TER — Recherche</title>
+		<title data-i18n="page.title">Easy Bici — Recherche</title>
 
 		<!-- Catppuccin palette (contains variables for multiple flavors: latte, macchiato, mocha, frappe) -->
 		<link
@@ -570,7 +570,7 @@
 		<!-- Prevent flash of unstyled theme before JS runs -->
 		<script>
 			try {
-				if (localStorage.getItem('voyage-ter:theme') === 'dark')
+				if (localStorage.getItem('easy-bici:theme') === 'dark')
 					document.documentElement.setAttribute('data-theme', 'dark')
 			} catch (_) {}
 		</script>
@@ -642,7 +642,7 @@
 		<div class="container">
 			<header>
 				<div class="brand">
-					<h1>Voyage TER</h1>
+					<h1>Easy Bici</h1>
 					<p class="lead" data-i18n="lead">
 						Les trajets vélo + train les plus courts — démo
 					</p>
@@ -786,7 +786,7 @@
 
 			// ── Theme toggle ──────────────────────────────────────────────────────────
 			const toggle = document.getElementById('themeToggle')
-			const THEME_KEY = 'voyage-ter:theme'
+			const THEME_KEY = 'easy-bici:theme'
 
 			function applyTheme(theme) {
 				const isDark = theme === 'dark'

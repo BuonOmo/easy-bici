@@ -1,5 +1,5 @@
 /**
- * i18n module for Voyage TER.
+ * i18n module for Easy Bici.
  *
  * ╭────────────────────────────────────────────────────────────────────────╮
  * │ Copyright (C) 2026-present  Ulysse Buonomo                             │
@@ -33,7 +33,7 @@
 export const SUPPORTED_LOCALES = /** @type {const} */ (['fr', 'en'])
 export const DEFAULT_LOCALE = 'fr'
 
-const STORAGE_KEY = 'voyage-ter:lang'
+const STORAGE_KEY = 'easy-bici:lang'
 
 // ── Translations ─────────────────────────────────────────────────────────────
 
@@ -43,7 +43,7 @@ const STORAGE_KEY = 'voyage-ter:lang'
 export const translations = {
 	fr: {
 		// Page meta
-		'page.title': 'Voyage TER — Recherche',
+		'page.title': 'Easy Bici — Recherche',
 
 		// Header
 		lead: 'Voyager en train avec mon vélo',
@@ -98,7 +98,7 @@ export const translations = {
 
 	en: {
 		// Page meta
-		'page.title': 'Voyage TER — Search',
+		'page.title': 'Easy Bici — Search',
 
 		// Header
 		lead: 'Bike-friendly train journeys',

@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-
+#
 # ╭────────────────────────────────────────────────────────────────────────╮
 # │ Copyright (C) 2026-present  Ulysse Buonomo                             │
 # │                                                                        │
@@ -16,8 +16,6 @@
 # │ You should have received a copy of the GNU General Public License      │
 # │ along with this program.  If not, see <https://www.gnu.org/licenses/>. │
 # ╰────────────────────────────────────────────────────────────────────────╯
-
-# voyage-ter/scripts/filter_bike_gtfs.rb
 #
 # Read GTFS files and remove non-bike-friendly entries in-place.
 # Creates timestamped backups before modifying files.
