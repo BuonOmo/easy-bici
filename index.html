@@ -18,841 +18,1202 @@
 ╰────────────────────────────────────────────────────────────────────────╯
 -->
 <html lang="fr">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title data-i18n="page.title">Voyage TER — Recherche</title>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title data-i18n="page.title">Voyage TER — Recherche</title>
 
-  <!-- Catppuccin palette (contains variables for multiple flavors: latte, macchiato, mocha, frappe) -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@catppuccin/palette/css/catppuccin.css">
+		<!-- Catppuccin palette (contains variables for multiple flavors: latte, macchiato, mocha, frappe) -->
+		<link
+			rel="stylesheet"
+			href="https://cdn.jsdelivr.net/npm/@catppuccin/palette/css/catppuccin.css"
+		/>
 
-  <style>
-    /*
+		<style>
+			/*
       Theme mapping:
       - Light theme uses Catppuccin 'latte'
       - Dark theme uses Catppuccin 'macchiato'
       We map a small set of semantic variables used in the UI to the palette variables.
     */
-    :root{
-      /* fallback semantic tokens (will be overridden by theme-specific mappings) */
-      --bg: #f7f8fb;
-      --card: #ffffff;
-      --muted: #6b7280;
-      --accent: #0366d6;
-      --border: #e6e9ef;
-      --text: #0f172a;
-      --surface: #ffffff;
-      --shadow: rgba(12,18,31,0.06);
-      --glass: rgba(255,255,255,0.8);
-    }
-
-    /* Light: Catppuccin latte */
-    :root {
-      /* latte variables exist as --ctp-latte-... from the imported stylesheet */
-      --bg: var(--ctp-latte-base);
-      --card: var(--ctp-latte-surface0);
-      --muted: var(--ctp-latte-subtext0);
-      --accent: var(--ctp-latte-blue);
-      --border: var(--ctp-latte-mantle);
-      --text: var(--ctp-latte-text);
-      --surface: var(--ctp-latte-surface1);
-      --shadow: rgba(12, 18, 31, 0.06);
-      --glass: rgba(var(--ctp-latte-base-rgb), 0.85);
-    }
-
-    /* Dark: Catppuccin macchiato */
-    [data-theme="dark"] {
-      --bg: var(--ctp-macchiato-base);
-      --card: var(--ctp-macchiato-surface0);
-      --muted: var(--ctp-macchiato-subtext0);
-      --accent: var(--ctp-macchiato-blue);
-      --border: var(--ctp-macchiato-mantle);
-      --text: var(--ctp-macchiato-text);
-      --surface: var(--ctp-macchiato-surface1);
-      --shadow: rgba(0,0,0,0.32);
-      --glass: rgba(var(--ctp-macchiato-base-rgb), 0.7);
-    }
-
-    /* Basic layout & components */
-    html,body{
-      height:100%;
-      margin:0;
-      background:var(--bg);
-      color:var(--text);
-      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-    }
-
-    .container{
-      max-width:980px;
-      margin:36px auto;
-      padding:20px;
-    }
-
-    header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:16px;
-      margin-bottom:18px;
-    }
-
-    .brand {
-      display:flex;
-      gap:12px;
-      align-items:baseline;
-      line-height:1;
-    }
-    h1 {
-      margin:0;
-      font-size:1.25rem;
-      letter-spacing:-0.2px;
-    }
-    p.lead {
-      margin:0;
-      color:var(--muted);
-      font-size:0.95rem;
-    }
-
-    .theme-switch {
-      position: absolute;
-      top: 18px;
-      right: 20px;
-      z-index: 9999;
-      cursor: pointer;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .theme-switch input[type="checkbox"] {
-      position: absolute;
-      opacity: 0;
-      width: 0;
-      height: 0;
-      pointer-events: none;
-    }
-
-    .switch-track {
-      display: block;
-      width: 60px;
-      height: 30px;
-      border-radius: 15px;
-      background: var(--ctp-latte-yellow);
-      position: relative;
-      transition: background 0.42s ease, box-shadow 0.3s ease, transform 0.15s ease;
-      box-shadow: 0 2px 10px rgba(223, 142, 29, 0.45), inset 0 1px 2px rgba(255,255,255,0.15);
-    }
-
-    .theme-switch:hover .switch-track {
-      transform: scale(1.07);
-      box-shadow: 0 4px 16px rgba(223, 142, 29, 0.6), inset 0 1px 2px rgba(255,255,255,0.15);
-    }
-
-    .theme-switch input:checked ~ .switch-track {
-      background: var(--ctp-macchiato-mantle);
-      box-shadow: 0 2px 10px rgba(30, 32, 48, 0.65), inset 0 1px 3px rgba(0,0,0,0.25);
-    }
-
-    .theme-switch:hover input:checked ~ .switch-track,
-    .theme-switch input:checked:hover ~ .switch-track {
-      box-shadow: 0 4px 18px rgba(30, 32, 48, 0.85), inset 0 1px 3px rgba(0,0,0,0.25);
-    }
-
-    .switch-thumb {
-      position: absolute;
-      top: 4px;
-      left: 4px;
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      background: var(--ctp-latte-base);
-      box-shadow: 0 1px 5px rgba(0,0,0,0.22);
-      transition: transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .theme-switch input:checked ~ .switch-track .switch-thumb {
-      transform: translateX(30px);
-      box-shadow: 0 1px 8px rgba(0,0,0,0.38);
-    }
-
-    .switch-icon {
-      position: absolute;
-      width: 13px;
-      height: 13px;
-      transition: opacity 0.22s ease, transform 0.22s ease;
-      pointer-events: none;
-    }
-
-    .icon-sun {
-      color: var(--ctp-latte-yellow);
-      opacity: 1;
-      transform: scale(1) rotate(0deg);
-    }
-    .icon-moon {
-      color: var(--ctp-latte-mauve);
-      opacity: 0;
-      transform: scale(0.6) rotate(-30deg);
-    }
-
-    .theme-switch input:checked ~ .switch-track .icon-sun {
-      opacity: 0;
-      transform: scale(0.6) rotate(30deg);
-    }
-    .theme-switch input:checked ~ .switch-track .icon-moon {
-      opacity: 1;
-      transform: scale(1) rotate(0deg);
-    }
-
-    /* focus ring for keyboard nav */
-    .theme-switch input:focus-visible ~ .switch-track {
-      outline: 2px solid var(--accent);
-      outline-offset: 3px;
-    }
-
-    .card{
-      background: linear-gradient(180deg, var(--card), rgba(255,255,255,0.01));
-      border-radius:12px;
-      padding:18px;
-      box-shadow: 0 6px 18px var(--shadow);
-      border:1px solid var(--border);
-    }
-
-    form.search-form{
-      display:grid;
-      grid-template-columns: 1fr 1fr 260px auto;
-      gap:10px;
-      align-items:end;
-      margin-bottom:14px;
-    }
-    label{font-size:0.85rem;color:var(--muted);display:block;margin-bottom:6px}
-    .field{display:flex;flex-direction:column;}
-    input[type="text"], input[type="datetime-local"]{
-      padding:10px 12px;
-      border:1px solid var(--border);
-      border-radius:8px;
-      font-size:0.95rem;
-      width:100%;
-      box-sizing:border-box;
-      background:var(--surface);
-      color:var(--text);
-    }
-    input::placeholder{color:var(--muted);opacity:0.8}
-
-    .reverse-btn{
-      display:inline-flex;
-      gap:8px;
-      align-items:center;
-      padding:8px 12px;
-      border-radius:8px;
-      border:1px solid var(--border);
-      background:var(--glass);
-      cursor:pointer;
-      font-size:0.95rem;
-      color:var(--text);
-    }
-    .reverse-btn:active{transform:translateY(1px)}
-
-    .controls{
-      display:flex;
-      gap:8px;
-      align-items:center;
-    }
-    button.primary{
-      background:var(--accent);
-      color: white;
-      border:none;
-      padding:10px 14px;
-      border-radius:8px;
-      cursor:pointer;
-      font-weight:600;
-    }
-    button.primary:disabled{opacity:0.6;cursor:not-allowed}
-
-    .results{
-      margin-top:14px;
-      display:grid;
-      gap:12px;
-    }
-
-    .result{
-      border-radius:10px;
-      padding:12px;
-      background: linear-gradient(180deg, var(--card), var(--surface));
-      border:1px solid var(--border);
-      display:flex;
-      gap:12px;
-      align-items:flex-start;
-    }
-    .summary{
-      min-width:140px;
-      flex:0 0 140px;
-      border-right:1px dashed var(--border);
-      padding-right:12px;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      gap:8px;
-    }
-    .time-row{display:flex;align-items:baseline;gap:8px}
-    .time-label{font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);min-width:28px}
-    .time-val{font-size:1.15rem;font-weight:700}
-    .summary .total-dur{font-size:0.82rem;color:var(--muted);margin-top:2px}
-    .conn-list{flex:1}
-    .conn{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      padding:10px;
-      border-radius:8px;
-      border:1px solid var(--border);
-      margin-bottom:8px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.01));
-    }
-    .conn .fromto{flex:1}
-    .conn .conn-dur{font-weight:600;font-size:0.95rem;white-space:nowrap;color:var(--accent)}
-    .muted{color:var(--muted);font-size:0.9rem}
-    .note{font-size:0.85rem;color:var(--muted);margin-top:8px}
-
-    .spinner{
-      display:inline-block;
-      width:18px;height:18px;border-radius:50%;
-      border:3px solid rgba(0,0,0,0.08);
-      border-top-color:var(--accent);
-      animation:spin 1s linear infinite;
-    }
-    @keyframes spin{to{transform:rotate(360deg)}}
-
-    /* Autocomplete dropdown */
-    .ac-wrapper{position:relative;}
-    .ac-list{
-      position:absolute;
-      top:100%;
-      left:0;
-      right:0;
-      z-index:200;
-      margin:4px 0 0;
-      padding:4px 0;
-      list-style:none;
-      background:var(--card);
-      border:1px solid var(--border);
-      border-radius:8px;
-      box-shadow:0 8px 24px var(--shadow);
-      max-height:260px;
-      overflow-y:auto;
-      display:none;
-    }
-    .ac-list.open{display:block;}
-    .ac-item{
-      padding:8px 12px;
-      cursor:pointer;
-      font-size:0.95rem;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .ac-item:hover,.ac-item[aria-selected="true"]{
-      background:var(--surface);
-      color:var(--accent);
-    }
-
-    @media (max-width:900px){
-      form.search-form{
-        grid-template-columns: 1fr;
-      }
-      .result{flex-direction:column}
-      .summary{min-width:0;flex:none;width:100%;border-right:none;border-bottom:1px dashed var(--border);padding-right:0;padding-bottom:10px;margin-bottom:2px;flex-direction:row;flex-wrap:wrap;gap:4px 16px}
-    }
-
-    /* Language switcher button */
-    .lang-switch {
-      position: absolute;
-      top: 18px;
-      right: 90px;
-      z-index: 9999;
-      height: 30px;
-      padding: 0 14px;
-      box-sizing: border-box;
-      display: inline-flex;
-      align-items: center;
-      border-radius: 15px;
-      border: 1px solid var(--border);
-      background: var(--glass);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
-      color: var(--text);
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      cursor: pointer;
-      transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
-      line-height: 1;
-    }
-    .lang-switch:hover {
-      background: var(--surface);
-      transform: scale(1.07);
-      box-shadow: 0 2px 8px var(--shadow);
-    }
-    .lang-switch:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: 2px;
-    }
-  </style>
-
-  <!-- Prevent flash of unstyled theme before JS runs -->
-  <script>
-    try {
-      if (localStorage.getItem('voyage-ter:theme') === 'dark')
-        document.documentElement.setAttribute('data-theme', 'dark');
-    } catch (_) {}
-  </script>
-</head>
-
-<body>
-
-  <!-- Fixed light/dark theme toggle ---------------------------------------->
-  <label class="theme-switch" data-i18n-title="theme.switch.title" title="Basculer clair / sombre">
-    <input type="checkbox" id="themeToggle" aria-label="Passer en mode sombre">
-    <span class="switch-track">
-      <span class="switch-thumb">
-        <!-- Schematic sun -->
-        <svg class="switch-icon icon-sun" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-             aria-hidden="true">
-          <circle cx="12" cy="12" r="4"/>
-          <line x1="12" y1="2"   x2="12" y2="5.5"/>
-          <line x1="12" y1="18.5" x2="12" y2="22"/>
-          <line x1="2"   y1="12" x2="5.5" y2="12"/>
-          <line x1="18.5" y1="12" x2="22" y2="12"/>
-          <line x1="4.93" y1="4.93"  x2="7.34" y2="7.34"/>
-          <line x1="16.66" y1="16.66" x2="19.07" y2="19.07"/>
-          <line x1="19.07" y1="4.93"  x2="16.66" y2="7.34"/>
-          <line x1="7.34"  y1="16.66" x2="4.93"  y2="19.07"/>
-        </svg>
-        <!-- Schematic crescent moon -->
-        <svg class="switch-icon icon-moon" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-             stroke-linejoin="round" aria-hidden="true">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-        </svg>
-      </span>
-    </span>
-  </label>
-
-  <button id="langSwitch" class="lang-switch" data-i18n="lang.switch" data-i18n-title="lang.switch.title" title="Switch to English">EN</button>
-
-  <div class="container">
-    <header>
-      <div class="brand">
-        <div>
-          <h1>Voyage TER</h1></div>
-          <p class="lead" data-i18n="lead">Les trajets vélo + train les plus courts — démo</p>
-        </div>
-      </div>
-    </header>
-
-    <main class="card" role="main">
-      <form id="searchForm" class="search-form" autocomplete="off" role="search" aria-label="Rechercher des connexions" data-i18n-aria-label="form.aria">
-        <div class="field ac-wrapper" id="departureWrapper">
-          <label for="departure" data-i18n="form.label.departure">Départ</label>
-          <input id="departure" name="departure" type="text" required
-            placeholder="Gare ou adresse (ex. Lyon Part-Dieu)" data-i18n-placeholder="form.departure.placeholder"
-            autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="departureList" aria-haspopup="listbox" />
-          <ul id="departureList" class="ac-list" role="listbox" aria-label="Suggestions de départ" data-i18n-aria-label="form.departure.suggestions"></ul>
-        </div>
-
-        <div class="field ac-wrapper" id="arrivalWrapper">
-          <label for="arrival" data-i18n="form.label.arrival">Arrivée</label>
-          <input id="arrival" name="arrival" type="text" required
-            placeholder="Gare ou adresse (ex. Grenoble)" data-i18n-placeholder="form.arrival.placeholder"
-            autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="arrivalList" aria-haspopup="listbox" />
-          <ul id="arrivalList" class="ac-list" role="listbox" aria-label="Suggestions d'arrivée" data-i18n-aria-label="form.arrival.suggestions"></ul>
-        </div>
-
-        <div class="field">
-          <label for="datetime" data-i18n="form.label.datetime">Date et heure de départ</label>
-          <input id="datetime" name="datetime" type="datetime-local" />
-        </div>
-
-        <div class="controls">
-          <button type="button" id="reverseBtn" class="reverse-btn" title="Échanger départ et arrivée" data-i18n-title="btn.reverse.title" data-i18n="btn.reverse">⇄ Inverser</button>
-          <button id="submitBtn" class="primary" type="submit" data-i18n="btn.search">Rechercher</button>
-        </div>
-      </form>
-
-      <div id="status" class="muted" aria-live="polite" style="margin-top:10px"></div>
-
-      <div id="results" class="results" aria-live="polite" style="margin-top:12px"></div>
-    </main>
-
-  </div>
-
-  <script type="module">
-    import { init as i18nInit, t, setLocale, getLocale } from './src/i18n.js';
-
-    // ── i18n ─────────────────────────────────────────────────────────────────
-    i18nInit();   // detect locale, translate all data-i18n elements
-
-    // ── Theme toggle ──────────────────────────────────────────────────────────
-    const toggle = document.getElementById('themeToggle');
-    const THEME_KEY = 'voyage-ter:theme';
-
-    function applyTheme(theme) {
-      const isDark = theme === 'dark';
-      if (isDark) {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        toggle.checked = true;
-        toggle.setAttribute('aria-label', t('theme.to-light'));
-      } else {
-        document.documentElement.removeAttribute('data-theme');
-        toggle.checked = false;
-        toggle.setAttribute('aria-label', t('theme.to-dark'));
-      }
-      try { localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light'); } catch (e) {}
-    }
-
-    function initialTheme() {
-      try {
-        const stored = localStorage.getItem(THEME_KEY);
-        if (stored === 'light' || stored === 'dark') return stored;
-      } catch (e) {}
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        return 'dark';
-      }
-      return 'light';
-    }
-
-    toggle.addEventListener('change', () => applyTheme(toggle.checked ? 'dark' : 'light'));
-    applyTheme(initialTheme());
-
-    // Keep theme aria-label in sync when locale changes
-    document.addEventListener('localechange', () => {
-      applyTheme(toggle.checked ? 'dark' : 'light');
-      if (lastResults !== null) renderResults(lastResults);
-    });
-
-    // ── Language switcher ─────────────────────────────────────────────────────
-    document.getElementById('langSwitch').addEventListener('click', () => {
-      setLocale(getLocale() === 'fr' ? 'en' : 'fr');
-    });
-
-    // ── Worker setup ──────────────────────────────────────────────────────────
-    // Worker script lives in src/.
-    // It expects messages of the form { type: 'search', query, requestId }
-    // and posts back { type: 'results', results, requestId }.
-    let worker;
-    worker = new Worker('src/worker.js', { type: 'module' });
-
-    // Keep map of pending requests if needed for ignoring stale responses
-    const pendingRequests = new Map();
-
-    // Last rendered results — re-rendered when locale changes
-    let lastResults = null;
-
-    // DOM elements
-    const form           = document.getElementById('searchForm');
-    const departureInput = document.getElementById('departure');
-    const arrivalInput   = document.getElementById('arrival');
-    const datetimeInput  = document.getElementById('datetime');
-    const resultsEl      = document.getElementById('results');
-    const statusEl       = document.getElementById('status');
-    const reverseBtn     = document.getElementById('reverseBtn');
-    const submitBtn      = document.getElementById('submitBtn');
-
-    // Wire up worker messages
-    worker.addEventListener('message', (e) => {
-      const { type, results, requestId, message } = e.data || {};
-      if (type === 'loading') {
-        statusEl.innerHTML = '<span class="spinner" aria-hidden="true"></span> ' + t('status.loading');
-      } else if (type === 'results') {
-        lastResults = results;
-        renderResults(results);
-        const count = results ? results.length : 0;
-        statusEl.textContent = t('status.found', count);
-        submitBtn.disabled = false;
-      } else if (type === 'error') {
-        statusEl.textContent = t('status.error') + (e.data.error || 'unknown error');
-        submitBtn.disabled = false;
-      } else if (type === 'suggestions') {
-        const ac = e.data.field === 'departure' ? departureAC : arrivalAC;
-        if (ac) ac.show(e.data.suggestions || []);
-      }
-    });
-
-    // Swap departure/arrival
-    reverseBtn.addEventListener('click', () => {
-      const tmp = departureInput.value;
-      departureInput.value = arrivalInput.value;
-      arrivalInput.value = tmp;
-    });
-
-    // Autocomplete setup ---------------------------------------------------
-    function setupAutocomplete(inputEl, listEl, fieldName) {
-      let activeIdx = -1;
-      let debounceTimer = null;
-
-      function getItems() { return listEl.querySelectorAll('.ac-item'); }
-
-      function setActive(idx) {
-        const items = getItems();
-        activeIdx = Math.max(-1, Math.min(idx, items.length - 1));
-        items.forEach((el, i) => {
-          const on = i === activeIdx;
-          el.setAttribute('aria-selected', on ? 'true' : 'false');
-        });
-        inputEl.setAttribute('aria-activedescendant',
-          activeIdx >= 0 ? (items[activeIdx] && items[activeIdx].id) || '' : '');
-      }
-
-      function hide() {
-        listEl.classList.remove('open');
-        listEl.innerHTML = '';
-        activeIdx = -1;
-        inputEl.setAttribute('aria-expanded', 'false');
-      }
-
-      function show(suggestions) {
-        listEl.innerHTML = '';
-        if (!suggestions || !suggestions.length) { hide(); return; }
-        suggestions.forEach((name, i) => {
-          const li = document.createElement('li');
-          li.id = 'ac-' + fieldName + '-' + i;
-          li.className = 'ac-item';
-          li.setAttribute('role', 'option');
-          li.setAttribute('aria-selected', 'false');
-          li.textContent = name;
-          li.addEventListener('mousedown', (ev) => {
-            ev.preventDefault();
-            inputEl.value = name;
-            hide();
-          });
-          listEl.appendChild(li);
-        });
-        listEl.classList.add('open');
-        inputEl.setAttribute('aria-expanded', 'true');
-        activeIdx = -1;
-      }
-
-      inputEl.addEventListener('input', () => {
-        clearTimeout(debounceTimer);
-        const q = inputEl.value.trim();
-        if (q.length < 2) { hide(); return; }
-        debounceTimer = setTimeout(() => {
-          worker.postMessage({ type: 'autocomplete', query: q, field: fieldName, requestId: Date.now() });
-        }, 180);
-      });
-
-      inputEl.addEventListener('keydown', (ev) => {
-        const items = getItems();
-        if (ev.key === 'ArrowDown') {
-          ev.preventDefault();
-          setActive(activeIdx + 1);
-        } else if (ev.key === 'ArrowUp') {
-          ev.preventDefault();
-          setActive(activeIdx - 1);
-        } else if (ev.key === 'Enter' && activeIdx >= 0 && items[activeIdx]) {
-          ev.preventDefault();
-          ev.stopPropagation();
-          inputEl.value = items[activeIdx].textContent;
-          hide();
-        } else if (ev.key === 'Escape') {
-          hide();
-        }
-      });
-
-      inputEl.addEventListener('blur', () => {
-        // Delay so mousedown on a list item fires first
-        setTimeout(hide, 160);
-      });
-
-      inputEl.addEventListener('focus', () => {
-        const q = inputEl.value.trim();
-        if (q.length >= 2) {
-          worker.postMessage({ type: 'autocomplete', query: q, field: fieldName, requestId: Date.now() });
-        }
-      });
-
-      return { show, hide };
-    }
-
-    const departureAC = setupAutocomplete(
-      departureInput,
-      document.getElementById('departureList'),
-      'departure'
-    );
-    const arrivalAC = setupAutocomplete(
-      arrivalInput,
-      document.getElementById('arrivalList'),
-      'arrival'
-    );
-
-    // Submit form -> post to worker
-    form.addEventListener('submit', (ev) => {
-      ev.preventDefault();
-      const dep = departureInput.value.trim();
-      const arr = arrivalInput.value.trim();
-      if (!dep || !arr) {
-        statusEl.textContent = t('status.fill');
-        return;
-      }
-
-      // Update browser history with search params
-      const urlParams = new URLSearchParams();
-      urlParams.set('d', dep);
-      urlParams.set('a', arr);
-      if (datetimeInput.value) urlParams.set('t', datetimeInput.value);
-      const newURL = location.pathname + '?' + urlParams.toString();
-      if (location.search !== '?' + urlParams.toString()) {
-        history.pushState({ dep, arr, datetime: datetimeInput.value }, '', newURL);
-      }
-
-      const query = {
-        departure: dep,
-        arrival: arr,
-        datetime: datetimeInput.value || null
-      };
-
-      const requestId = Date.now() + Math.random();
-      pendingRequests.set(requestId, { query, time: Date.now() });
-
-      statusEl.innerHTML = '<span class="spinner" aria-hidden="true"></span> ' + t('status.searching');
-      submitBtn.disabled = true;
-      resultsEl.innerHTML = '';
-
-      worker.postMessage({ type: 'search', query, requestId });
-    });
-
-    // Helpers & rendering --------------------------------------------------
-    function renderResults(results) {
-      resultsEl.innerHTML = '';
-      if (!results || results.length === 0) {
-        const empty = document.createElement('div');
-        empty.className = 'muted';
-        empty.textContent = t('results.none');
-        resultsEl.appendChild(empty);
-        return;
-      }
-
-      results.forEach((opt, idx) => {
-        const item = document.createElement('div');
-        item.className = 'result';
-
-        const summary = document.createElement('div');
-        summary.className = 'summary';
-
-        const firstConn = opt.connexions && opt.connexions.length ? opt.connexions[0] : null;
-        const lastConn  = opt.connexions && opt.connexions.length ? opt.connexions[opt.connexions.length - 1] : null;
-        const departTime  = firstConn ? new Date(firstConn.start) : null;
-        const arrivalTime = lastConn  ? new Date(new Date(lastConn.start).getTime() + lastConn.duration * 60000) : null;
-        const fmtTime = d => d ? d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--';
-
-        const depRow = document.createElement('div');
-        depRow.className = 'time-row';
-        depRow.innerHTML = '<span class="time-label">' + t('results.dep') + '</span><span class="time-val">' + fmtTime(departTime) + '</span>';
-
-        const arrRow = document.createElement('div');
-        arrRow.className = 'time-row';
-        arrRow.innerHTML = '<span class="time-label">' + t('results.arr') + '</span><span class="time-val">' + fmtTime(arrivalTime) + '</span>';
-
-        const totalDur = document.createElement('div');
-        totalDur.className = 'total-dur';
-        totalDur.textContent = formatDuration(opt.duration);
-
-        summary.appendChild(depRow);
-        summary.appendChild(arrRow);
-        summary.appendChild(totalDur);
-
-        const connList = document.createElement('div');
-        connList.className = 'conn-list';
-        opt.connexions.forEach((c) => {
-          const cdiv = document.createElement('div');
-          cdiv.className = 'conn';
-          const fromto = document.createElement('div');
-          fromto.className = 'fromto';
-          const ft1 = document.createElement('div');
-          ft1.innerHTML = '<strong>' + escapeHtml(c.from) + '</strong> → <strong>' + escapeHtml(c.to) + '</strong>';
-          const ft2 = document.createElement('div');
-          ft2.className = 'muted';
-          ft2.textContent = fmtTime(new Date(c.start)) + ' → ' + fmtTime(new Date(new Date(c.start).getTime() + c.duration * 60000));
-          fromto.appendChild(ft1);
-          fromto.appendChild(ft2);
-
-          const connDur = document.createElement('div');
-          connDur.className = 'conn-dur';
-          connDur.textContent = formatDuration(c.duration);
-
-          cdiv.appendChild(fromto);
-          cdiv.appendChild(connDur);
-          connList.appendChild(cdiv);
-        });
-
-        item.appendChild(summary);
-        item.appendChild(connList);
-        resultsEl.appendChild(item);
-      });
-    }
-
-    function formatDuration(mins) {
-      if (mins == null) return '';
-      const h = Math.floor(mins / 60);
-      const m = mins % 60;
-      if (h > 0) return h + 'h ' + m + 'm';
-      return m + 'm';
-    }
-
-    function escapeHtml(s){
-      if(!s) return '';
-      return String(s)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-    }
-
-    // Read URL params and populate form, triggering a search if params are present
-    function loadFromURL() {
-      const params = new URLSearchParams(location.search);
-      const dep = params.get('d');
-      const arr = params.get('a');
-      const dateParam = params.get('t');
-      if (dep !== null || arr !== null) {
-        if (dep !== null) departureInput.value = dep;
-        if (arr !== null) arrivalInput.value = arr;
-        if (dateParam) datetimeInput.value = dateParam;
-        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-        return true;
-      }
-      return false;
-    }
-
-    // Handle browser back/forward navigation
-    window.addEventListener('popstate', loadFromURL);
-
-    // Set default datetime then prefill example values or load from URL
-    (function initDatetime(){
-      const now = new Date();
-      now.setSeconds(0,0);
-      const mins = now.getMinutes();
-      now.setMinutes(Math.ceil(mins/15)*15);
-      const pad = (n) => String(n).padStart(2,'0');
-      const loc = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate()) + 'T' + pad(now.getHours()) + ':' + pad(now.getMinutes());
-      datetimeInput.value = loc;
-      if (!loadFromURL()) {
-        departureInput.value = 'Lyon Part-Dieu';
-        arrivalInput.value = 'Grenoble';
-      }
-    })();
-
-    // Allow Ctrl/Cmd+Enter keyboard shortcut to submit
-    form.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        submitBtn.click();
-      }
-    });
-  </script>
-</body>
+			:root {
+				/* fallback semantic tokens (will be overridden by theme-specific mappings) */
+				--bg: #f7f8fb;
+				--card: #ffffff;
+				--muted: #6b7280;
+				--accent: #0366d6;
+				--border: #e6e9ef;
+				--text: #0f172a;
+				--surface: #ffffff;
+				--shadow: rgba(12, 18, 31, 0.06);
+				--glass: rgba(255, 255, 255, 0.8);
+			}
+
+			/* Light: Catppuccin latte */
+			:root {
+				/* latte variables exist as --ctp-latte-... from the imported stylesheet */
+				--bg: var(--ctp-latte-base);
+				--card: var(--ctp-latte-surface0);
+				--muted: var(--ctp-latte-subtext0);
+				--accent: var(--ctp-latte-blue);
+				--border: var(--ctp-latte-mantle);
+				--text: var(--ctp-latte-text);
+				--surface: var(--ctp-latte-surface1);
+				--shadow: rgba(12, 18, 31, 0.06);
+				--glass: rgba(var(--ctp-latte-base-rgb), 0.85);
+			}
+
+			/* Dark: Catppuccin macchiato */
+			[data-theme='dark'] {
+				--bg: var(--ctp-macchiato-base);
+				--card: var(--ctp-macchiato-surface0);
+				--muted: var(--ctp-macchiato-subtext0);
+				--accent: var(--ctp-macchiato-blue);
+				--border: var(--ctp-macchiato-mantle);
+				--text: var(--ctp-macchiato-text);
+				--surface: var(--ctp-macchiato-surface1);
+				--shadow: rgba(0, 0, 0, 0.32);
+				--glass: rgba(var(--ctp-macchiato-base-rgb), 0.7);
+			}
+
+			/* Basic layout & components */
+			html,
+			body {
+				height: 100%;
+				margin: 0;
+				background: var(--bg);
+				color: var(--text);
+				font-family:
+					Inter,
+					system-ui,
+					-apple-system,
+					'Segoe UI',
+					Roboto,
+					'Helvetica Neue',
+					Arial,
+					sans-serif;
+				-webkit-font-smoothing: antialiased;
+				-moz-osx-font-smoothing: grayscale;
+			}
+
+			.container {
+				max-width: 980px;
+				margin: 36px auto;
+				padding: 20px;
+			}
+
+			header {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 16px;
+				margin-bottom: 18px;
+			}
+
+			.brand {
+				display: flex;
+				gap: 12px;
+				align-items: baseline;
+				line-height: 1;
+			}
+			h1 {
+				margin: 0;
+				font-size: 1.25rem;
+				letter-spacing: -0.2px;
+			}
+			p.lead {
+				margin: 0;
+				color: var(--muted);
+				font-size: 0.95rem;
+			}
+
+			.theme-switch {
+				position: absolute;
+				top: 18px;
+				right: 20px;
+				z-index: 9999;
+				cursor: pointer;
+				user-select: none;
+				-webkit-tap-highlight-color: transparent;
+			}
+
+			.theme-switch input[type='checkbox'] {
+				position: absolute;
+				opacity: 0;
+				width: 0;
+				height: 0;
+				pointer-events: none;
+			}
+
+			.switch-track {
+				display: block;
+				width: 60px;
+				height: 30px;
+				border-radius: 15px;
+				background: var(--ctp-latte-yellow);
+				position: relative;
+				transition:
+					background 0.42s ease,
+					box-shadow 0.3s ease,
+					transform 0.15s ease;
+				box-shadow:
+					0 2px 10px rgba(223, 142, 29, 0.45),
+					inset 0 1px 2px rgba(255, 255, 255, 0.15);
+			}
+
+			.theme-switch:hover .switch-track {
+				transform: scale(1.07);
+				box-shadow:
+					0 4px 16px rgba(223, 142, 29, 0.6),
+					inset 0 1px 2px rgba(255, 255, 255, 0.15);
+			}
+
+			.theme-switch input:checked ~ .switch-track {
+				background: var(--ctp-macchiato-mantle);
+				box-shadow:
+					0 2px 10px rgba(30, 32, 48, 0.65),
+					inset 0 1px 3px rgba(0, 0, 0, 0.25);
+			}
+
+			.theme-switch:hover input:checked ~ .switch-track,
+			.theme-switch input:checked:hover ~ .switch-track {
+				box-shadow:
+					0 4px 18px rgba(30, 32, 48, 0.85),
+					inset 0 1px 3px rgba(0, 0, 0, 0.25);
+			}
+
+			.switch-thumb {
+				position: absolute;
+				top: 4px;
+				left: 4px;
+				width: 22px;
+				height: 22px;
+				border-radius: 50%;
+				background: var(--ctp-latte-base);
+				box-shadow: 0 1px 5px rgba(0, 0, 0, 0.22);
+				transition:
+					transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1),
+					box-shadow 0.2s ease;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+
+			.theme-switch input:checked ~ .switch-track .switch-thumb {
+				transform: translateX(30px);
+				box-shadow: 0 1px 8px rgba(0, 0, 0, 0.38);
+			}
+
+			.switch-icon {
+				position: absolute;
+				width: 13px;
+				height: 13px;
+				transition:
+					opacity 0.22s ease,
+					transform 0.22s ease;
+				pointer-events: none;
+			}
+
+			.icon-sun {
+				color: var(--ctp-latte-yellow);
+				opacity: 1;
+				transform: scale(1) rotate(0deg);
+			}
+			.icon-moon {
+				color: var(--ctp-latte-mauve);
+				opacity: 0;
+				transform: scale(0.6) rotate(-30deg);
+			}
+
+			.theme-switch input:checked ~ .switch-track .icon-sun {
+				opacity: 0;
+				transform: scale(0.6) rotate(30deg);
+			}
+			.theme-switch input:checked ~ .switch-track .icon-moon {
+				opacity: 1;
+				transform: scale(1) rotate(0deg);
+			}
+
+			/* focus ring for keyboard nav */
+			.theme-switch input:focus-visible ~ .switch-track {
+				outline: 2px solid var(--accent);
+				outline-offset: 3px;
+			}
+
+			.card {
+				background: linear-gradient(
+					180deg,
+					var(--card),
+					rgba(255, 255, 255, 0.01)
+				);
+				border-radius: 12px;
+				padding: 18px;
+				box-shadow: 0 6px 18px var(--shadow);
+				border: 1px solid var(--border);
+			}
+
+			form.search-form {
+				display: grid;
+				grid-template-columns: 1fr 1fr 260px auto;
+				gap: 10px;
+				align-items: end;
+				margin-bottom: 14px;
+			}
+			label {
+				font-size: 0.85rem;
+				color: var(--muted);
+				display: block;
+				margin-bottom: 6px;
+			}
+			.field {
+				display: flex;
+				flex-direction: column;
+			}
+			input[type='text'],
+			input[type='datetime-local'] {
+				padding: 10px 12px;
+				border: 1px solid var(--border);
+				border-radius: 8px;
+				font-size: 0.95rem;
+				width: 100%;
+				box-sizing: border-box;
+				background: var(--surface);
+				color: var(--text);
+			}
+			input::placeholder {
+				color: var(--muted);
+				opacity: 0.8;
+			}
+
+			.reverse-btn {
+				display: inline-flex;
+				gap: 8px;
+				align-items: center;
+				padding: 8px 12px;
+				border-radius: 8px;
+				border: 1px solid var(--border);
+				background: var(--glass);
+				cursor: pointer;
+				font-size: 0.95rem;
+				color: var(--text);
+			}
+			.reverse-btn:active {
+				transform: translateY(1px);
+			}
+
+			.controls {
+				display: flex;
+				gap: 8px;
+				align-items: center;
+			}
+			button.primary {
+				background: var(--accent);
+				color: white;
+				border: none;
+				padding: 10px 14px;
+				border-radius: 8px;
+				cursor: pointer;
+				font-weight: 600;
+			}
+			button.primary:disabled {
+				opacity: 0.6;
+				cursor: not-allowed;
+			}
+
+			.results {
+				margin-top: 14px;
+				display: grid;
+				gap: 12px;
+				list-style: none;
+				padding: 0;
+			}
+
+			.result {
+				border-radius: 10px;
+				padding: 12px;
+				background: linear-gradient(
+					180deg,
+					var(--card),
+					var(--surface)
+				);
+				border: 1px solid var(--border);
+				display: flex;
+				gap: 12px;
+				align-items: flex-start;
+			}
+			.summary {
+				min-width: 140px;
+				flex: 0 0 140px;
+				border-right: 1px dashed var(--border);
+				padding-right: 12px;
+				display: flex;
+				flex-direction: column;
+				/*justify-content: center;*/
+				gap: 8px;
+			}
+			.summary dl {
+				display: grid;
+				grid-template-columns: auto 1fr;
+				align-items: baseline;
+				gap: 2px 8px;
+				margin: 0;
+			}
+			.time-label {
+				font-size: 0.72rem;
+				font-weight: 700;
+				text-transform: uppercase;
+				letter-spacing: 0.04em;
+				color: var(--muted);
+				min-width: 28px;
+			}
+			.time-val {
+				font-size: 1.15rem;
+				font-weight: 700;
+				margin: 0;
+			}
+			.summary .total-dur {
+				font-size: 0.82rem;
+				color: var(--muted);
+				margin: 2px 0 0;
+			}
+			.conn-list {
+				flex: 1;
+				list-style: none;
+				padding: 0;
+				margin: 0;
+			}
+			.conn {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				padding: 10px;
+				border-radius: 8px;
+				border: 1px solid var(--border);
+				margin-bottom: 8px;
+				background: linear-gradient(
+					180deg,
+					rgba(255, 255, 255, 0.02),
+					rgba(0, 0, 0, 0.01)
+				);
+			}
+			.conn .fromto {
+				flex: 1;
+			}
+			.conn .fromto p {
+				margin: 0;
+			}
+			.conn .conn-dur {
+				font-weight: 600;
+				font-size: 0.95rem;
+				white-space: nowrap;
+				color: var(--accent);
+				margin: 0;
+			}
+			.muted {
+				color: var(--muted);
+				font-size: 0.9rem;
+			}
+			.note {
+				font-size: 0.85rem;
+				color: var(--muted);
+				margin-top: 8px;
+			}
+
+			.spinner {
+				display: inline-block;
+				width: 18px;
+				height: 18px;
+				border-radius: 50%;
+				border: 3px solid rgba(0, 0, 0, 0.08);
+				border-top-color: var(--accent);
+				animation: spin 1s linear infinite;
+			}
+			@keyframes spin {
+				to {
+					transform: rotate(360deg);
+				}
+			}
+
+			/* Autocomplete dropdown */
+			.ac-wrapper {
+				position: relative;
+			}
+			.ac-list {
+				position: absolute;
+				top: 100%;
+				left: 0;
+				right: 0;
+				z-index: 200;
+				margin: 4px 0 0;
+				padding: 4px 0;
+				list-style: none;
+				background: var(--card);
+				border: 1px solid var(--border);
+				border-radius: 8px;
+				box-shadow: 0 8px 24px var(--shadow);
+				max-height: 260px;
+				overflow-y: auto;
+				display: none;
+			}
+			.ac-list.open {
+				display: block;
+			}
+			.ac-item {
+				padding: 8px 12px;
+				cursor: pointer;
+				font-size: 0.95rem;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+			.ac-item:hover,
+			.ac-item[aria-selected='true'] {
+				background: var(--surface);
+				color: var(--accent);
+			}
+
+			@media (min-width: 900px) {
+				.summary {
+					height: 100%;
+				}
+			}
+
+			@media (max-width: 900px) {
+				form.search-form {
+					grid-template-columns: 1fr;
+				}
+				.result {
+					flex-direction: column;
+				}
+				.summary {
+					min-width: 0;
+					flex: none;
+					width: 100%;
+					border-right: none;
+					border-bottom: 1px dashed var(--border);
+					padding-right: 0;
+					padding-bottom: 10px;
+					margin-bottom: 2px;
+					flex-direction: row;
+					flex-wrap: wrap;
+					gap: 4px 16px;
+					align-items: baseline;
+					justify-content: space-between;
+				}
+
+				.summary dl {
+					display: flex;
+					/* Visual separation between definition items. */
+					dd + dt {
+						margin-left: 6px;
+					}
+				}
+				/* Ensure the connection list stretches to full card width. */
+				.conn-list {
+					width: 100%;
+				}
+			}
+
+			/* Language switcher button */
+			.lang-switch {
+				position: absolute;
+				top: 18px;
+				right: 90px;
+				z-index: 9999;
+				height: 30px;
+				padding: 0 14px;
+				box-sizing: border-box;
+				display: inline-flex;
+				align-items: center;
+				border-radius: 15px;
+				border: 1px solid var(--border);
+				background: var(--glass);
+				backdrop-filter: blur(4px);
+				-webkit-backdrop-filter: blur(4px);
+				color: var(--text);
+				font-size: 0.75rem;
+				font-weight: 700;
+				letter-spacing: 0.06em;
+				cursor: pointer;
+				transition:
+					background 0.2s ease,
+					transform 0.15s ease,
+					box-shadow 0.2s ease;
+				line-height: 1;
+			}
+			.lang-switch:hover {
+				background: var(--surface);
+				transform: scale(1.07);
+				box-shadow: 0 2px 8px var(--shadow);
+			}
+			.lang-switch:focus-visible {
+				outline: 2px solid var(--accent);
+				outline-offset: 2px;
+			}
+		</style>
+
+		<!-- Prevent flash of unstyled theme before JS runs -->
+		<script>
+			try {
+				if (localStorage.getItem('voyage-ter:theme') === 'dark')
+					document.documentElement.setAttribute('data-theme', 'dark')
+			} catch (_) {}
+		</script>
+	</head>
+
+	<body>
+		<!-- Fixed light/dark theme toggle ---------------------------------------->
+		<label
+			class="theme-switch"
+			data-i18n-title="theme.switch.title"
+			title="Basculer clair / sombre"
+		>
+			<input
+				type="checkbox"
+				id="themeToggle"
+				aria-label="Passer en mode sombre"
+			/>
+			<span class="switch-track">
+				<span class="switch-thumb">
+					<!-- Schematic sun -->
+					<svg
+						class="switch-icon icon-sun"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.8"
+						stroke-linecap="round"
+						aria-hidden="true"
+					>
+						<circle cx="12" cy="12" r="4" />
+						<line x1="12" y1="2" x2="12" y2="5.5" />
+						<line x1="12" y1="18.5" x2="12" y2="22" />
+						<line x1="2" y1="12" x2="5.5" y2="12" />
+						<line x1="18.5" y1="12" x2="22" y2="12" />
+						<line x1="4.93" y1="4.93" x2="7.34" y2="7.34" />
+						<line x1="16.66" y1="16.66" x2="19.07" y2="19.07" />
+						<line x1="19.07" y1="4.93" x2="16.66" y2="7.34" />
+						<line x1="7.34" y1="16.66" x2="4.93" y2="19.07" />
+					</svg>
+					<!-- Schematic crescent moon -->
+					<svg
+						class="switch-icon icon-moon"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.8"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						<path
+							d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+						/>
+					</svg>
+				</span>
+			</span>
+		</label>
+
+		<button
+			id="langSwitch"
+			class="lang-switch"
+			data-i18n="lang.switch"
+			data-i18n-title="lang.switch.title"
+			title="Switch to English"
+		>
+			EN
+		</button>
+
+		<div class="container">
+			<header>
+				<div class="brand">
+					<h1>Voyage TER</h1>
+					<p class="lead" data-i18n="lead">
+						Les trajets vélo + train les plus courts — démo
+					</p>
+				</div>
+			</header>
+
+			<main class="card" role="main">
+				<form
+					id="searchForm"
+					class="search-form"
+					autocomplete="off"
+					role="search"
+					aria-label="Rechercher des connexions"
+					data-i18n-aria-label="form.aria"
+				>
+					<div class="field ac-wrapper" id="departureWrapper">
+						<label for="departure" data-i18n="form.label.departure"
+							>Départ</label
+						>
+						<input
+							id="departure"
+							name="departure"
+							type="text"
+							required
+							placeholder="Gare ou adresse (ex. Lyon Part-Dieu)"
+							data-i18n-placeholder="form.departure.placeholder"
+							autocomplete="off"
+							role="combobox"
+							aria-autocomplete="list"
+							aria-expanded="false"
+							aria-controls="departureList"
+							aria-haspopup="listbox"
+						/>
+						<ul
+							id="departureList"
+							class="ac-list"
+							role="listbox"
+							aria-label="Suggestions de départ"
+							data-i18n-aria-label="form.departure.suggestions"
+						></ul>
+					</div>
+
+					<div class="field ac-wrapper" id="arrivalWrapper">
+						<label for="arrival" data-i18n="form.label.arrival"
+							>Arrivée</label
+						>
+						<input
+							id="arrival"
+							name="arrival"
+							type="text"
+							required
+							placeholder="Gare ou adresse (ex. Grenoble)"
+							data-i18n-placeholder="form.arrival.placeholder"
+							autocomplete="off"
+							role="combobox"
+							aria-autocomplete="list"
+							aria-expanded="false"
+							aria-controls="arrivalList"
+							aria-haspopup="listbox"
+						/>
+						<ul
+							id="arrivalList"
+							class="ac-list"
+							role="listbox"
+							aria-label="Suggestions d'arrivée"
+							data-i18n-aria-label="form.arrival.suggestions"
+						></ul>
+					</div>
+
+					<div class="field">
+						<label for="datetime" data-i18n="form.label.datetime"
+							>Date et heure de départ</label
+						>
+						<input
+							id="datetime"
+							name="datetime"
+							type="datetime-local"
+						/>
+					</div>
+
+					<div class="controls">
+						<button
+							type="button"
+							id="reverseBtn"
+							class="reverse-btn"
+							title="Échanger départ et arrivée"
+							data-i18n-title="btn.reverse.title"
+							data-i18n="btn.reverse"
+						>
+							⇄ Inverser
+						</button>
+						<button
+							id="submitBtn"
+							class="primary"
+							type="submit"
+							data-i18n="btn.search"
+						>
+							Rechercher
+						</button>
+					</div>
+				</form>
+
+				<output
+					id="status"
+					class="muted"
+					aria-live="polite"
+					style="margin-top: 10px"
+				></output>
+
+				<ol
+					id="results"
+					class="results"
+					aria-live="polite"
+					style="margin-top: 12px"
+				></ol>
+			</main>
+		</div>
+
+		<script type="module">
+			import {
+				init as i18nInit,
+				t,
+				setLocale,
+				getLocale,
+			} from './src/i18n.js'
+
+			// ── i18n ─────────────────────────────────────────────────────────────────
+			i18nInit() // detect locale, translate all data-i18n elements
+
+			// ── Theme toggle ──────────────────────────────────────────────────────────
+			const toggle = document.getElementById('themeToggle')
+			const THEME_KEY = 'voyage-ter:theme'
+
+			function applyTheme(theme) {
+				const isDark = theme === 'dark'
+				if (isDark) {
+					document.documentElement.setAttribute('data-theme', 'dark')
+					toggle.checked = true
+					toggle.setAttribute('aria-label', t('theme.to-light'))
+				} else {
+					document.documentElement.removeAttribute('data-theme')
+					toggle.checked = false
+					toggle.setAttribute('aria-label', t('theme.to-dark'))
+				}
+				try {
+					localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light')
+				} catch (e) {}
+			}
+
+			function initialTheme() {
+				try {
+					const stored = localStorage.getItem(THEME_KEY)
+					if (stored === 'light' || stored === 'dark') return stored
+				} catch (e) {}
+				if (
+					window.matchMedia &&
+					window.matchMedia('(prefers-color-scheme: dark)').matches
+				) {
+					return 'dark'
+				}
+				return 'light'
+			}
+
+			toggle.addEventListener('change', () =>
+				applyTheme(toggle.checked ? 'dark' : 'light'),
+			)
+			applyTheme(initialTheme())
+
+			// Keep theme aria-label in sync when locale changes
+			document.addEventListener('localechange', () => {
+				applyTheme(toggle.checked ? 'dark' : 'light')
+				if (lastResults !== null) renderResults(lastResults)
+			})
+
+			// ── Language switcher ─────────────────────────────────────────────────────
+			document
+				.getElementById('langSwitch')
+				.addEventListener('click', () => {
+					setLocale(getLocale() === 'fr' ? 'en' : 'fr')
+				})
+
+			// ── Worker setup ──────────────────────────────────────────────────────────
+			// Worker script lives in src/.
+			// It expects messages of the form { type: 'search', query, requestId }
+			// and posts back { type: 'results', results, requestId }.
+			let worker
+			worker = new Worker('src/worker.js', { type: 'module' })
+
+			// Keep map of pending requests if needed for ignoring stale responses
+			const pendingRequests = new Map()
+
+			// Last rendered results — re-rendered when locale changes
+			let lastResults = null
+
+			// DOM elements
+			const form = document.getElementById('searchForm')
+			const departureInput = document.getElementById('departure')
+			const arrivalInput = document.getElementById('arrival')
+			const datetimeInput = document.getElementById('datetime')
+			const resultsEl = document.getElementById('results')
+			const statusEl = document.getElementById('status')
+			const reverseBtn = document.getElementById('reverseBtn')
+			const submitBtn = document.getElementById('submitBtn')
+
+			// Wire up worker messages
+			worker.addEventListener('message', (e) => {
+				const { type, results, requestId, message } = e.data || {}
+				if (type === 'loading') {
+					statusEl.innerHTML =
+						'<span class="spinner" aria-hidden="true"></span> ' +
+						t('status.loading')
+				} else if (type === 'results') {
+					lastResults = results
+					renderResults(results)
+					const count = results ? results.length : 0
+					statusEl.textContent = t('status.found', count)
+					submitBtn.disabled = false
+				} else if (type === 'error') {
+					statusEl.textContent =
+						t('status.error') + (e.data.error || 'unknown error')
+					submitBtn.disabled = false
+				} else if (type === 'suggestions') {
+					const ac =
+						e.data.field === 'departure' ? departureAC : arrivalAC
+					if (ac) ac.show(e.data.suggestions || [])
+				}
+			})
+
+			// Swap departure/arrival
+			reverseBtn.addEventListener('click', () => {
+				const tmp = departureInput.value
+				departureInput.value = arrivalInput.value
+				arrivalInput.value = tmp
+			})
+
+			// Autocomplete setup ---------------------------------------------------
+			function setupAutocomplete(inputEl, listEl, fieldName) {
+				let activeIdx = -1
+				let debounceTimer = null
+
+				function getItems() {
+					return listEl.querySelectorAll('.ac-item')
+				}
+
+				function setActive(idx) {
+					const items = getItems()
+					activeIdx = Math.max(-1, Math.min(idx, items.length - 1))
+					items.forEach((el, i) => {
+						const on = i === activeIdx
+						el.setAttribute('aria-selected', on ? 'true' : 'false')
+					})
+					inputEl.setAttribute(
+						'aria-activedescendant',
+						activeIdx >= 0
+							? (items[activeIdx] && items[activeIdx].id) || ''
+							: '',
+					)
+				}
+
+				function hide() {
+					listEl.classList.remove('open')
+					listEl.innerHTML = ''
+					activeIdx = -1
+					inputEl.setAttribute('aria-expanded', 'false')
+				}
+
+				function show(suggestions) {
+					listEl.innerHTML = ''
+					if (!suggestions || !suggestions.length) {
+						hide()
+						return
+					}
+					suggestions.forEach((name, i) => {
+						const li = document.createElement('li')
+						li.id = 'ac-' + fieldName + '-' + i
+						li.className = 'ac-item'
+						li.setAttribute('role', 'option')
+						li.setAttribute('aria-selected', 'false')
+						li.textContent = name
+						li.addEventListener('mousedown', (ev) => {
+							ev.preventDefault()
+							inputEl.value = name
+							hide()
+						})
+						listEl.appendChild(li)
+					})
+					listEl.classList.add('open')
+					inputEl.setAttribute('aria-expanded', 'true')
+					activeIdx = -1
+				}
+
+				inputEl.addEventListener('input', () => {
+					clearTimeout(debounceTimer)
+					const q = inputEl.value.trim()
+					if (q.length < 2) {
+						hide()
+						return
+					}
+					debounceTimer = setTimeout(() => {
+						worker.postMessage({
+							type: 'autocomplete',
+							query: q,
+							field: fieldName,
+							requestId: Date.now(),
+						})
+					}, 180)
+				})
+
+				inputEl.addEventListener('keydown', (ev) => {
+					const items = getItems()
+					if (ev.key === 'ArrowDown') {
+						ev.preventDefault()
+						setActive(activeIdx + 1)
+					} else if (ev.key === 'ArrowUp') {
+						ev.preventDefault()
+						setActive(activeIdx - 1)
+					} else if (
+						ev.key === 'Enter' &&
+						activeIdx >= 0 &&
+						items[activeIdx]
+					) {
+						ev.preventDefault()
+						ev.stopPropagation()
+						inputEl.value = items[activeIdx].textContent
+						hide()
+					} else if (ev.key === 'Escape') {
+						hide()
+					}
+				})
+
+				inputEl.addEventListener('blur', () => {
+					// Delay so mousedown on a list item fires first
+					setTimeout(hide, 160)
+				})
+
+				inputEl.addEventListener('focus', () => {
+					const q = inputEl.value.trim()
+					if (q.length >= 2) {
+						worker.postMessage({
+							type: 'autocomplete',
+							query: q,
+							field: fieldName,
+							requestId: Date.now(),
+						})
+					}
+				})
+
+				return { show, hide }
+			}
+
+			const departureAC = setupAutocomplete(
+				departureInput,
+				document.getElementById('departureList'),
+				'departure',
+			)
+			const arrivalAC = setupAutocomplete(
+				arrivalInput,
+				document.getElementById('arrivalList'),
+				'arrival',
+			)
+
+			// Submit form -> post to worker
+			form.addEventListener('submit', (ev) => {
+				ev.preventDefault()
+				const dep = departureInput.value.trim()
+				const arr = arrivalInput.value.trim()
+				if (!dep || !arr) {
+					statusEl.textContent = t('status.fill')
+					return
+				}
+
+				// Update browser history with search params
+				const urlParams = new URLSearchParams()
+				urlParams.set('d', dep)
+				urlParams.set('a', arr)
+				if (datetimeInput.value) urlParams.set('t', datetimeInput.value)
+				const newURL = location.pathname + '?' + urlParams.toString()
+				if (location.search !== '?' + urlParams.toString()) {
+					history.pushState(
+						{ dep, arr, datetime: datetimeInput.value },
+						'',
+						newURL,
+					)
+				}
+
+				const query = {
+					departure: dep,
+					arrival: arr,
+					datetime: datetimeInput.value || null,
+				}
+
+				const requestId = Date.now() + Math.random()
+				pendingRequests.set(requestId, { query, time: Date.now() })
+
+				statusEl.innerHTML =
+					'<span class="spinner" aria-hidden="true"></span> ' +
+					t('status.searching')
+				submitBtn.disabled = true
+				resultsEl.innerHTML = ''
+
+				worker.postMessage({ type: 'search', query, requestId })
+			})
+
+			// Helpers & rendering --------------------------------------------------
+			function renderResults(results) {
+				resultsEl.innerHTML = ''
+				if (!results || results.length === 0) {
+					const empty = document.createElement('li')
+					empty.className = 'muted'
+					empty.textContent = t('results.none')
+					resultsEl.appendChild(empty)
+					return
+				}
+
+				results.forEach((opt, idx) => {
+					const item = document.createElement('li')
+					item.className = 'result'
+
+					const summary = document.createElement('div')
+					summary.className = 'summary'
+
+					const firstConn =
+						opt.connexions && opt.connexions.length
+							? opt.connexions[0]
+							: null
+					const lastConn =
+						opt.connexions && opt.connexions.length
+							? opt.connexions[opt.connexions.length - 1]
+							: null
+					const departTime = firstConn
+						? new Date(firstConn.start)
+						: null
+					const arrivalTime = lastConn
+						? new Date(
+								new Date(lastConn.start).getTime() +
+									lastConn.duration * 60000,
+							)
+						: null
+					const fmtTime = (d) =>
+						d
+							? d.toLocaleTimeString([], {
+									hour: '2-digit',
+									minute: '2-digit',
+								})
+							: '--:--'
+
+					const timeDl = document.createElement('dl')
+					const depTerm = document.createElement('dt')
+					depTerm.className = 'time-label'
+					depTerm.textContent = t('results.dep')
+					const depVal = document.createElement('dd')
+					depVal.className = 'time-val'
+					depVal.textContent = fmtTime(departTime)
+					const arrTerm = document.createElement('dt')
+					arrTerm.className = 'time-label'
+					arrTerm.textContent = t('results.arr')
+					const arrVal = document.createElement('dd')
+					arrVal.className = 'time-val'
+					arrVal.textContent = fmtTime(arrivalTime)
+					timeDl.appendChild(depTerm)
+					timeDl.appendChild(depVal)
+					timeDl.appendChild(arrTerm)
+					timeDl.appendChild(arrVal)
+
+					const totalDur = document.createElement('p')
+					totalDur.className = 'total-dur'
+					totalDur.textContent = formatDuration(opt.duration)
+
+					summary.appendChild(timeDl)
+					summary.appendChild(totalDur)
+
+					const connList = document.createElement('ol')
+					connList.className = 'conn-list'
+					opt.connexions.forEach((c) => {
+						const citem = document.createElement('li')
+						citem.className = 'conn'
+						const fromto = document.createElement('div')
+						fromto.className = 'fromto'
+						const ft1 = document.createElement('p')
+						ft1.innerHTML =
+							'<strong>' +
+							escapeHtml(c.from) +
+							'</strong> → <strong>' +
+							escapeHtml(c.to) +
+							'</strong>'
+						const ft2 = document.createElement('p')
+						ft2.className = 'muted'
+						ft2.textContent =
+							fmtTime(new Date(c.start)) +
+							' → ' +
+							fmtTime(
+								new Date(
+									new Date(c.start).getTime() +
+										c.duration * 60000,
+								),
+							)
+						fromto.appendChild(ft1)
+						fromto.appendChild(ft2)
+
+						const connDur = document.createElement('p')
+						connDur.className = 'conn-dur'
+						connDur.textContent = formatDuration(c.duration)
+
+						citem.appendChild(fromto)
+						citem.appendChild(connDur)
+						connList.appendChild(citem)
+					})
+
+					item.appendChild(summary)
+					item.appendChild(connList)
+					resultsEl.appendChild(item)
+				})
+			}
+
+			function formatDuration(mins) {
+				if (mins == null) return ''
+				const h = Math.floor(mins / 60)
+				const m = mins % 60
+				if (h > 0) return h + 'h ' + m + 'm'
+				return m + 'm'
+			}
+
+			function escapeHtml(s) {
+				if (!s) return ''
+				return String(s)
+					.replaceAll('&', '&amp;')
+					.replaceAll('<', '&lt;')
+					.replaceAll('>', '&gt;')
+					.replaceAll('"', '&quot;')
+					.replaceAll("'", '&#39;')
+			}
+
+			// Read URL params and populate form, triggering a search if params are present
+			function loadFromURL() {
+				const params = new URLSearchParams(location.search)
+				const dep = params.get('d')
+				const arr = params.get('a')
+				const dateParam = params.get('t')
+				if (dep !== null || arr !== null) {
+					if (dep !== null) departureInput.value = dep
+					if (arr !== null) arrivalInput.value = arr
+					if (dateParam) datetimeInput.value = dateParam
+					form.dispatchEvent(
+						new Event('submit', {
+							bubbles: true,
+							cancelable: true,
+						}),
+					)
+					return true
+				}
+				return false
+			}
+
+			// Handle browser back/forward navigation
+			window.addEventListener('popstate', loadFromURL)
+
+			// Set default datetime then prefill example values or load from URL
+			;(function initDatetime() {
+				const now = new Date()
+				now.setSeconds(0, 0)
+				const mins = now.getMinutes()
+				now.setMinutes(Math.ceil(mins / 15) * 15)
+				const pad = (n) => String(n).padStart(2, '0')
+				const loc =
+					now.getFullYear() +
+					'-' +
+					pad(now.getMonth() + 1) +
+					'-' +
+					pad(now.getDate()) +
+					'T' +
+					pad(now.getHours()) +
+					':' +
+					pad(now.getMinutes())
+				datetimeInput.value = loc
+				if (!loadFromURL()) {
+					departureInput.value = 'Lyon Part-Dieu'
+					arrivalInput.value = 'Grenoble'
+				}
+			})()
+
+			// Allow Ctrl/Cmd+Enter keyboard shortcut to submit
+			form.addEventListener('keydown', (e) => {
+				if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+					submitBtn.click()
+				}
+			})
+		</script>
+	</body>
 </html>

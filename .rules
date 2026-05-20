@@ -34,3 +34,5 @@
 	- Code style should be homogenous.
 - You should avoid appending to pre-existing comments, but rather rewrite them.
 - Your comments should not describe history but the current state.
+- HTML Semantic is important, for instance un-ordered list should be `ul` and ordered list `ol`.
+- Try making the minimal possible diff. Do not change code style if already existing.
