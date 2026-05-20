@@ -168,23 +168,117 @@ export function runCSA(connections, origins, dests, t0) {
 }
 
 /**
- * Find up to maxResults journey options by calling runCSA repeatedly,
- * advancing t0 to departureTime+1 after each found journey.
- * @param {Array}    connections
+ * Score a single journey against the rest of the candidate pool.
+ * Higher score → better option.
+ *
+ * Criteria (all relative to the pool unless stated absolutely):
+ *   +100  Earlier arrival   (normalised 0–100; 100 = earliest in pool)
+ *   − 20  Per leg (train)   (absolute penalty: –20 × path.length)
+ *   + 50  Shorter duration  (normalised 0–50;  50 = shortest in pool)
+ *   + 25  Closest departure (normalised 0–25;  25 = closest to t0 in pool)
+ *
+ * @param {{ path: Array, departureTime: number, arrivalTime: number }} option
+ * @param {number} t0  Original requested departure (Unix seconds)
+ * @param {{ minArrival: number, maxArrival: number,
+ *           minDuration: number, maxDuration: number,
+ *           minOffset:  number, maxOffset:  number }} stats
+ * @returns {number}
+ */
+function scoreOption(option, t0, stats) {
+	const { path, departureTime, arrivalTime } = option
+	const duration = arrivalTime - departureTime
+	const offset = departureTime - t0 // ≥ 0: seconds after requested departure
+
+	const {
+		minArrival,
+		maxArrival,
+		minDuration,
+		maxDuration,
+		minOffset,
+		maxOffset,
+	} = stats
+
+	// Normalised arrival score (100 for earliest, 0 for latest)
+	const arrRange = maxArrival - minArrival
+	const arrivalScore =
+		arrRange > 0 ? ((maxArrival - arrivalTime) / arrRange) * 100 : 100
+
+	// Absolute connection penalty
+	const connectionPenalty = -20 * path.length
+
+	// Normalised duration score (50 for shortest, 0 for longest)
+	const durRange = maxDuration - minDuration
+	const durationScore =
+		durRange > 0 ? ((maxDuration - duration) / durRange) * 50 : 50
+
+	// Normalised departure-proximity score (25 for closest to t0, 0 for latest)
+	const offRange = maxOffset - minOffset
+	const offsetScore = offRange > 0 ? ((maxOffset - offset) / offRange) * 25 : 25
+
+	return arrivalScore + connectionPenalty + durationScore + offsetScore
+}
+
+/**
+ * Collect every feasible journey from t0 until no more exist, then return
+ * the top maxResults options ranked by a multi-criteria score.
+ *
+ * Scoring criteria (see scoreOption):
+ *   +100  Earlier arrival (normalised)
+ *   − 20  Per leg/train   (absolute)
+ *   + 50  Shorter duration (normalised)
+ *   + 25  Closest to requested departure (normalised)
+ *
+ * @param {Array}    connections  Sorted by dep_timestamp
  * @param {string[]} origins
  * @param {string[]} dests
- * @param {number}   t0
- * @param {number}   [maxResults=3]
- * @returns {Array<{ path: Array, departureTime: number, arrivalTime: number }>}
+ * @param {number}   t0           Earliest departure Unix timestamp (seconds)
+ * @param {number}   [maxResults=10]
+ * @returns {Array<{ path: Array, departureTime: number, arrivalTime: number, score: number }>}
  */
-export function findOptions(connections, origins, dests, t0, maxResults = 3) {
-	const options = []
+export function findOptions(connections, origins, dests, t0, maxResults = 10) {
+	// 1. Collect every reachable journey from t0 until the timetable is exhausted.
+	const all = []
 	let cur = t0
-	while (options.length < maxResults) {
+	while (true) {
 		const result = runCSA(connections, origins, dests, cur)
 		if (result.path === null) break
-		options.push(result)
+		all.push(result)
 		cur = result.departureTime + 1
 	}
-	return options
+
+	if (all.length === 0) return []
+
+	// 2. Compute pool-wide min/max for normalised scoring.
+	let minArrival = Infinity,
+		maxArrival = -Infinity
+	let minDuration = Infinity,
+		maxDuration = -Infinity
+	let minOffset = Infinity,
+		maxOffset = -Infinity
+
+	for (const j of all) {
+		const duration = j.arrivalTime - j.departureTime
+		const offset = j.departureTime - t0
+		if (j.arrivalTime < minArrival) minArrival = j.arrivalTime
+		if (j.arrivalTime > maxArrival) maxArrival = j.arrivalTime
+		if (duration < minDuration) minDuration = duration
+		if (duration > maxDuration) maxDuration = duration
+		if (offset < minOffset) minOffset = offset
+		if (offset > maxOffset) maxOffset = offset
+	}
+
+	const stats = {
+		minArrival,
+		maxArrival,
+		minDuration,
+		maxDuration,
+		minOffset,
+		maxOffset,
+	}
+
+	// 3. Score, sort descending, return top maxResults.
+	return all
+		.map((j) => ({ ...j, score: scoreOption(j, t0, stats) }))
+		.sort((a, b) => b.score - a.score)
+		.slice(0, maxResults)
 }
