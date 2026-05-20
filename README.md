@@ -12,9 +12,10 @@ a Github Action.
 
 # TODO
 
-- also filter stop_times in extract_bike_friendly script
+- also filter stop_times in filter_bike_gtfs script
 - later we should consider adding bike connection directly in
   the trip search, since we know user has a bike!
+- we should also print results on a map rather than a list
 
 [^1]: https://arxiv.org/pdf/1703.05997
 [^2]: https://github.com/trainline-eu/csa-challenge

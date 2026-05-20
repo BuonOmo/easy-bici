@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-# voyage-ter/scripts/extract_bike_friendly.rb
+# voyage-ter/scripts/filter_bike_gtfs.rb
 #
 # Read GTFS files and remove non-bike-friendly entries in-place.
 # Creates timestamped backups before modifying files.
@@ -15,8 +15,8 @@
 #   Trips are also checked via trip_id / trip_headsign as a fallback.
 #
 # Usage:
-#   ruby voyage-ter/scripts/extract_bike_friendly.rb            # apply in-place
-#   ruby voyage-ter/scripts/extract_bike_friendly.rb --dry-run  # preview only
+#   ruby scripts/filter_bike_gtfs.rb            # apply in-place
+#   ruby scripts/filter_bike_gtfs.rb --dry-run  # preview only
 
 require 'csv'
 require 'fileutils'
