@@ -443,6 +443,9 @@
 				border-top-color: var(--accent);
 				animation: spin 1s linear infinite;
 			}
+			.spinner[hidden] {
+				display: none;
+			}
 			@keyframes spin {
 				to {
 					transform: rotate(360deg);
@@ -762,6 +765,13 @@
 					class="muted"
 					aria-live="polite"
 					style="margin-top: 10px"
+					><span
+						class="spinner"
+						aria-hidden="true"
+						id="statusSpinner"
+						hidden
+					></span
+					><span id="statusText"></span
 				></output>
 
 				<ol
@@ -779,6 +789,8 @@
 				t,
 				setLocale,
 				getLocale,
+				setI18n,
+				clearI18n,
 			} from './src/i18n.js'
 
 			// ── i18n ─────────────────────────────────────────────────────────────────
@@ -856,6 +868,8 @@
 			const datetimeInput = document.getElementById('datetime')
 			const resultsEl = document.getElementById('results')
 			const statusEl = document.getElementById('status')
+			const statusTextEl = document.getElementById('statusText')
+			const statusSpinnerEl = document.getElementById('statusSpinner')
 			const reverseBtn = document.getElementById('reverseBtn')
 			const submitBtn = document.getElementById('submitBtn')
 			const departureErrorEl = document.getElementById('departureError')
@@ -864,33 +878,39 @@
 			// Clears validation error state for a station field.
 			const clearFieldError = (inputEl, errorEl) => {
 				inputEl.removeAttribute('aria-invalid')
-				errorEl.textContent = ''
+				clearI18n(errorEl)
 			}
 
 			// Wire up worker messages
 			worker.addEventListener('message', (e) => {
 				const { type, results, requestId, message } = e.data || {}
 				if (type === 'loading') {
-					statusEl.innerHTML =
-						'<span class="spinner" aria-hidden="true"></span> ' +
-						t('status.loading')
+					statusSpinnerEl.hidden = false
+					setI18n(statusTextEl, 'status.loading')
 				} else if (type === 'results') {
 					lastResults = results
 					renderResults(results)
 					const count = results ? results.length : 0
-					statusEl.textContent = t('status.found', count)
+					statusSpinnerEl.hidden = true
+					setI18n(statusTextEl, 'status.found', [count])
 					submitBtn.disabled = false
 				} else if (type === 'invalid_station') {
 					const isDepart = e.data.field === 'departure'
 					const inputEl = isDepart ? departureInput : arrivalInput
 					const errorEl = isDepart ? departureErrorEl : arrivalErrorEl
 					inputEl.setAttribute('aria-invalid', 'true')
-					errorEl.textContent = t('error.station.invalid')
-					statusEl.textContent = ''
+					setI18n(errorEl, 'error.station.invalid')
+					statusSpinnerEl.hidden = true
+					clearI18n(statusTextEl)
 					submitBtn.disabled = false
 				} else if (type === 'error') {
-					statusEl.textContent =
-						t('status.error') + (e.data.error || 'unknown error')
+					statusSpinnerEl.hidden = true
+					setI18n(
+						statusTextEl,
+						'status.error',
+						[],
+						e.data.error || 'unknown error',
+					)
 					submitBtn.disabled = false
 				} else if (type === 'suggestions') {
 					const ac =
@@ -1073,7 +1093,8 @@
 				const dep = departureInput.value.trim()
 				const arr = arrivalInput.value.trim()
 				if (!dep || !arr) {
-					statusEl.textContent = t('status.fill')
+					statusSpinnerEl.hidden = true
+					setI18n(statusTextEl, 'status.fill')
 					return
 				}
 
@@ -1081,12 +1102,12 @@
 				// the autocomplete (or pre-confirmed for defaults / URL loading).
 				if (departureAC.getConfirmed() !== dep) {
 					departureInput.setAttribute('aria-invalid', 'true')
-					departureErrorEl.textContent = t('error.station.invalid')
+					setI18n(departureErrorEl, 'error.station.invalid')
 					return
 				}
 				if (arrivalAC.getConfirmed() !== arr) {
 					arrivalInput.setAttribute('aria-invalid', 'true')
-					arrivalErrorEl.textContent = t('error.station.invalid')
+					setI18n(arrivalErrorEl, 'error.station.invalid')
 					return
 				}
 
@@ -1113,9 +1134,8 @@
 				const requestId = Date.now() + Math.random()
 				pendingRequests.set(requestId, { query, time: Date.now() })
 
-				statusEl.innerHTML =
-					'<span class="spinner" aria-hidden="true"></span> ' +
-					t('status.searching')
+				statusSpinnerEl.hidden = false
+				setI18n(statusTextEl, 'status.searching')
 				submitBtn.disabled = true
 				resultsEl.innerHTML = ''
 
