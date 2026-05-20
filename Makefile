@@ -5,8 +5,7 @@ serve:
 	python -m http.server 8000
 
 test:
-	open http://localhost:8001
-	python -m http.server --directory test 8001
+	open http://localhost:8000/test
 
 build:
 	ruby scripts/filter_bike_gtfs.rb
