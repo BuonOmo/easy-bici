@@ -515,6 +515,16 @@
         return;
       }
 
+      // Update browser history with search params
+      const urlParams = new URLSearchParams();
+      urlParams.set('d', dep);
+      urlParams.set('a', arr);
+      if (datetimeInput.value) urlParams.set('t', datetimeInput.value);
+      const newURL = location.pathname + '?' + urlParams.toString();
+      if (location.search !== '?' + urlParams.toString()) {
+        history.pushState({ dep, arr, datetime: datetimeInput.value }, '', newURL);
+      }
+
       const query = {
         departure: dep,
         arrival: arr,
@@ -606,10 +616,27 @@
         .replaceAll("'", '&#39;');
     }
 
-    // Prefill example values and default datetime
-    departureInput.value = 'Lyon Part-Dieu';
-    arrivalInput.value = 'Grenoble';
-    (function setDefaultDatetime(){
+    // Read URL params and populate form, triggering a search if params are present
+    function loadFromURL() {
+      const params = new URLSearchParams(location.search);
+      const dep = params.get('d');
+      const arr = params.get('a');
+      const t = params.get('t');
+      if (dep !== null || arr !== null) {
+        if (dep !== null) departureInput.value = dep;
+        if (arr !== null) arrivalInput.value = arr;
+        if (t) datetimeInput.value = t;
+        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        return true;
+      }
+      return false;
+    }
+
+    // Handle browser back/forward navigation
+    window.addEventListener('popstate', loadFromURL);
+
+    // Set default datetime then prefill example values or load from URL
+    (function init(){
       const now = new Date();
       now.setSeconds(0,0);
       const mins = now.getMinutes();
@@ -617,6 +644,10 @@
       const pad = (n) => String(n).padStart(2,'0');
       const loc = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate()) + 'T' + pad(now.getHours()) + ':' + pad(now.getMinutes());
       datetimeInput.value = loc;
+      if (!loadFromURL()) {
+        departureInput.value = 'Lyon Part-Dieu';
+        arrivalInput.value = 'Grenoble';
+      }
     })();
 
     // Allow Ctrl/Cmd+Enter keyboard shortcut to submit
