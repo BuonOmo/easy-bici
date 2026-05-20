@@ -1,3 +1,5 @@
+[![Tests](https://github.com/BuonOmo/voyage-ter/actions/workflows/test.yml/badge.svg)](https://github.com/BuonOmo/voyage-ter/actions/workflows/test.yml)
+
 # Design
 
 This is a static front-end website, that is designed to
