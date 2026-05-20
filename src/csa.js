@@ -173,7 +173,7 @@ export function runCSA(connections, origins, dests, t0) {
  *
  * Criteria (all relative to the pool unless stated absolutely):
  *   +100  Earlier arrival   (normalised 0–100; 100 = earliest in pool)
- *   − 20  Per leg (train)   (absolute penalty: –20 × path.length)
+ *   − 20² Per change        (absolute penalty: –20 × (path.length - 1)²)
  *   + 50  Shorter duration  (normalised 0–50;  50 = shortest in pool)
  *   + 25  Closest departure (normalised 0–25;  25 = closest to t0 in pool)
  *
@@ -204,7 +204,7 @@ function scoreOption(option, t0, stats) {
 		arrRange > 0 ? ((maxArrival - arrivalTime) / arrRange) * 100 : 100
 
 	// Absolute connection penalty
-	const connectionPenalty = -20 * path.length
+	const connectionPenalty = -20 * (path.length - 1) * (path.length - 1)
 
 	// Normalised duration score (50 for shortest, 0 for longest)
 	const durRange = maxDuration - minDuration

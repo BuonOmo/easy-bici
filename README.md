@@ -8,6 +8,11 @@ It relies on web workers and the CSA algorithm[^1][^2].
 Data are taken from SNCF GTFS[^3] feed and daily updated using
 a Github Action.
 
+## Tests
+
+There are two test harnesses available, one in the browser and
+the other requiring nodejs installed.
+
 # Caveats
 
 - GTFS-RT is not used, and train schedules can be 1 day old. 
