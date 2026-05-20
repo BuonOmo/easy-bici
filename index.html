@@ -194,13 +194,19 @@
       align-items:flex-start;
     }
     .summary{
-      min-width:220px;
-      flex:0 0 260px;
+      min-width:140px;
+      flex:0 0 140px;
       border-right:1px dashed var(--border);
       padding-right:12px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap:8px;
     }
-    .summary .dur{font-weight:700;font-size:1.05rem}
-    .summary .time{color:var(--muted);font-size:0.95rem;margin-top:6px}
+    .time-row{display:flex;align-items:baseline;gap:8px}
+    .time-label{font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);min-width:28px}
+    .time-val{font-size:1.15rem;font-weight:700}
+    .summary .total-dur{font-size:0.82rem;color:var(--muted);margin-top:2px}
     .conn-list{flex:1}
     .conn{
       display:flex;
@@ -213,7 +219,7 @@
       background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.01));
     }
     .conn .fromto{flex:1}
-    .conn .start{font-weight:600}
+    .conn .conn-dur{font-weight:600;font-size:0.95rem;white-space:nowrap;color:var(--accent)}
     .muted{color:var(--muted);font-size:0.9rem}
     .note{font-size:0.85rem;color:var(--muted);margin-top:8px}
 
@@ -263,7 +269,8 @@
       form.search-form{
         grid-template-columns: 1fr;
       }
-      .summary{min-width:0;flex-basis:auto;border-right:none;padding-right:0}
+      .result{flex-direction:column}
+      .summary{min-width:0;flex:none;width:100%;border-right:none;border-bottom:1px dashed var(--border);padding-right:0;padding-bottom:10px;margin-bottom:2px;flex-direction:row;flex-wrap:wrap;gap:4px 16px}
     }
   </style>
 </head>
@@ -360,11 +367,11 @@
     })();
 
     // Worker setup ----------------------------------------------------------
-    // Worker script has been extracted to ./worker.js (same directory).
+    // Worker script lives in src/.
     // It expects messages of the form { type: 'search', query, requestId }
     // and posts back { type: 'results', results, requestId }.
     let worker;
-    worker = new Worker('worker.js', { type: 'module' });
+    worker = new Worker('src/worker.js', { type: 'module' });
 
     // Keep map of pending requests if needed for ignoring stale responses
     const pendingRequests = new Map();
@@ -558,15 +565,28 @@
 
         const summary = document.createElement('div');
         summary.className = 'summary';
-        const dur = document.createElement('div');
-        dur.className = 'dur';
-        dur.textContent = formatDuration(opt.duration);
-        const time = document.createElement('div');
-        time.className = 'time';
-        const firstStart = opt.connexions && opt.connexions.length ? opt.connexions[0].start : null;
-        time.textContent = firstStart ? 'Departs ' + (new Date(firstStart)).toLocaleString() : '';
-        summary.appendChild(dur);
-        summary.appendChild(time);
+
+        const firstConn = opt.connexions && opt.connexions.length ? opt.connexions[0] : null;
+        const lastConn  = opt.connexions && opt.connexions.length ? opt.connexions[opt.connexions.length - 1] : null;
+        const departTime  = firstConn ? new Date(firstConn.start) : null;
+        const arrivalTime = lastConn  ? new Date(new Date(lastConn.start).getTime() + lastConn.duration * 60000) : null;
+        const fmtTime = d => d ? d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--';
+
+        const depRow = document.createElement('div');
+        depRow.className = 'time-row';
+        depRow.innerHTML = '<span class="time-label">Dep</span><span class="time-val">' + fmtTime(departTime) + '</span>';
+
+        const arrRow = document.createElement('div');
+        arrRow.className = 'time-row';
+        arrRow.innerHTML = '<span class="time-label">Arr</span><span class="time-val">' + fmtTime(arrivalTime) + '</span>';
+
+        const totalDur = document.createElement('div');
+        totalDur.className = 'total-dur';
+        totalDur.textContent = formatDuration(opt.duration);
+
+        summary.appendChild(depRow);
+        summary.appendChild(arrRow);
+        summary.appendChild(totalDur);
 
         const connList = document.createElement('div');
         connList.className = 'conn-list';
@@ -579,16 +599,16 @@
           ft1.innerHTML = '<strong>' + escapeHtml(c.from) + '</strong> → <strong>' + escapeHtml(c.to) + '</strong>';
           const ft2 = document.createElement('div');
           ft2.className = 'muted';
-          ft2.textContent = 'Duration: ' + formatDuration(c.duration);
+          ft2.textContent = fmtTime(new Date(c.start)) + ' → ' + fmtTime(new Date(new Date(c.start).getTime() + c.duration * 60000));
           fromto.appendChild(ft1);
           fromto.appendChild(ft2);
 
-          const start = document.createElement('div');
-          start.className = 'start';
-          start.textContent = (new Date(c.start)).toLocaleString();
+          const connDur = document.createElement('div');
+          connDur.className = 'conn-dur';
+          connDur.textContent = formatDuration(c.duration);
 
           cdiv.appendChild(fromto);
-          cdiv.appendChild(start);
+          cdiv.appendChild(connDur);
           connList.appendChild(cdiv);
         });
 
