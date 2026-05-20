@@ -113,6 +113,15 @@ function formatOption({ path, arrivalTime }, stopsById) {
 
 // ── Search ────────────────────────────────────────────────────────────────────
 
+/** Thrown when a station name cannot be resolved to a known stop. */
+class InvalidStationError extends Error {
+	/** @param {'departure' | 'arrival'} field */
+	constructor(field) {
+		super(`No stop found for ${field}`)
+		this.field = field
+	}
+}
+
 async function search(query, requestId) {
 	const data = await ensureGTFS(requestId)
 	const { rawConnections, stopsById, stopsByNorm, servicesByDate } = data
@@ -121,12 +130,8 @@ async function search(query, requestId) {
 	const originIds = findMatchingStops(query.departure || '', stopsByNorm)
 	const destIds = findMatchingStops(query.arrival || '', stopsByNorm)
 
-	if (originIds.length === 0) {
-		throw new Error(`No stop found for departure: "${query.departure}"`)
-	}
-	if (destIds.length === 0) {
-		throw new Error(`No stop found for arrival: "${query.arrival}"`)
-	}
+	if (originIds.length === 0) throw new InvalidStationError('departure')
+	if (destIds.length === 0) throw new InvalidStationError('arrival')
 
 	// Parse departure date/time
 	const queryDate = query.datetime ? new Date(query.datetime) : new Date()
@@ -186,13 +191,16 @@ self.addEventListener('message', async ({ data }) => {
 
 	try {
 		const results = await search(query, requestId)
-
 		self.postMessage({ type: 'results', results, requestId })
 	} catch (err) {
-		self.postMessage({
-			type: 'error',
-			error: err.message || 'Unknown error',
-			requestId,
-		})
+		if (err instanceof InvalidStationError) {
+			self.postMessage({ type: 'invalid_station', field: err.field, requestId })
+		} else {
+			self.postMessage({
+				type: 'error',
+				error: err.message || 'Unknown error',
+				requestId,
+			})
+		}
 	}
 })

@@ -61,6 +61,7 @@
 				--surface: var(--ctp-latte-surface1);
 				--shadow: rgba(12, 18, 31, 0.06);
 				--glass: rgba(var(--ctp-latte-base-rgb), 0.85);
+				--error: var(--ctp-latte-red);
 			}
 
 			/* Dark: Catppuccin macchiato */
@@ -74,6 +75,7 @@
 				--surface: var(--ctp-macchiato-surface1);
 				--shadow: rgba(0, 0, 0, 0.32);
 				--glass: rgba(var(--ctp-macchiato-base-rgb), 0.7);
+				--error: var(--ctp-macchiato-red);
 			}
 
 			/* Basic layout & components */
@@ -283,6 +285,19 @@
 			input::placeholder {
 				color: var(--muted);
 				opacity: 0.8;
+			}
+
+			input[aria-invalid='true'] {
+				border-color: var(--error);
+				box-shadow: 0 0 0 2px
+					color-mix(in srgb, var(--error) 18%, transparent);
+				outline: none;
+			}
+
+			.field-error {
+				font-size: 0.78rem;
+				color: var(--error);
+				margin: 4px 0 0;
 			}
 
 			.reverse-btn {
@@ -660,6 +675,7 @@
 							aria-expanded="false"
 							aria-controls="departureList"
 							aria-haspopup="listbox"
+							aria-describedby="departureError"
 						/>
 						<ul
 							id="departureList"
@@ -668,6 +684,11 @@
 							aria-label="Suggestions de départ"
 							data-i18n-aria-label="form.departure.suggestions"
 						></ul>
+						<p
+							class="field-error"
+							id="departureError"
+							role="alert"
+						></p>
 					</div>
 
 					<div class="field ac-wrapper" id="arrivalWrapper">
@@ -687,6 +708,7 @@
 							aria-expanded="false"
 							aria-controls="arrivalList"
 							aria-haspopup="listbox"
+							aria-describedby="arrivalError"
 						/>
 						<ul
 							id="arrivalList"
@@ -695,6 +717,11 @@
 							aria-label="Suggestions d'arrivée"
 							data-i18n-aria-label="form.arrival.suggestions"
 						></ul>
+						<p
+							class="field-error"
+							id="arrivalError"
+							role="alert"
+						></p>
 					</div>
 
 					<div class="field">
@@ -831,6 +858,14 @@
 			const statusEl = document.getElementById('status')
 			const reverseBtn = document.getElementById('reverseBtn')
 			const submitBtn = document.getElementById('submitBtn')
+			const departureErrorEl = document.getElementById('departureError')
+			const arrivalErrorEl = document.getElementById('arrivalError')
+
+			// Clears validation error state for a station field.
+			const clearFieldError = (inputEl, errorEl) => {
+				inputEl.removeAttribute('aria-invalid')
+				errorEl.textContent = ''
+			}
 
 			// Wire up worker messages
 			worker.addEventListener('message', (e) => {
@@ -845,6 +880,14 @@
 					const count = results ? results.length : 0
 					statusEl.textContent = t('status.found', count)
 					submitBtn.disabled = false
+				} else if (type === 'invalid_station') {
+					const isDepart = e.data.field === 'departure'
+					const inputEl = isDepart ? departureInput : arrivalInput
+					const errorEl = isDepart ? departureErrorEl : arrivalErrorEl
+					inputEl.setAttribute('aria-invalid', 'true')
+					errorEl.textContent = t('error.station.invalid')
+					statusEl.textContent = ''
+					submitBtn.disabled = false
 				} else if (type === 'error') {
 					statusEl.textContent =
 						t('status.error') + (e.data.error || 'unknown error')
@@ -856,17 +899,32 @@
 				}
 			})
 
-			// Swap departure/arrival
+			// Clear validation errors when user edits a station field.
+			departureInput.addEventListener('input', () =>
+				clearFieldError(departureInput, departureErrorEl),
+			)
+			arrivalInput.addEventListener('input', () =>
+				clearFieldError(arrivalInput, arrivalErrorEl),
+			)
+
+			// Swap departure/arrival (values and their confirmation state)
 			reverseBtn.addEventListener('click', () => {
 				const tmp = departureInput.value
 				departureInput.value = arrivalInput.value
 				arrivalInput.value = tmp
+				const tmpConf = departureAC.getConfirmed()
+				departureAC.setConfirmed(arrivalAC.getConfirmed())
+				arrivalAC.setConfirmed(tmpConf)
+				clearFieldError(departureInput, departureErrorEl)
+				clearFieldError(arrivalInput, arrivalErrorEl)
 			})
 
 			// Autocomplete setup ---------------------------------------------------
 			function setupAutocomplete(inputEl, listEl, fieldName) {
 				let activeIdx = -1
 				let debounceTimer = null
+				// Tracks the last value that was explicitly confirmed as a valid station.
+				let confirmedValue = null
 
 				function getItems() {
 					return listEl.querySelectorAll('.ac-item')
@@ -910,6 +968,7 @@
 						li.addEventListener('mousedown', (ev) => {
 							ev.preventDefault()
 							inputEl.value = name
+							confirmedValue = name
 							hide()
 						})
 						listEl.appendChild(li)
@@ -917,10 +976,17 @@
 					listEl.classList.add('open')
 					inputEl.setAttribute('aria-expanded', 'true')
 					activeIdx = -1
+					// Auto-confirm when the typed text is an exact station name.
+					const typed = inputEl.value.trim()
+					const exactMatch = suggestions.find(
+						(s) => s.toLowerCase() === typed.toLowerCase(),
+					)
+					if (exactMatch) confirmedValue = typed
 				}
 
 				inputEl.addEventListener('input', () => {
 					clearTimeout(debounceTimer)
+					confirmedValue = null
 					const q = inputEl.value.trim()
 					if (q.length < 2) {
 						hide()
@@ -951,8 +1017,10 @@
 					) {
 						ev.preventDefault()
 						ev.stopPropagation()
-						inputEl.value =
+						const selected =
 							items[activeIdx >= 0 ? activeIdx : 0].textContent
+						inputEl.value = selected
+						confirmedValue = selected
 						hide()
 					} else if (ev.key === 'Escape') {
 						hide()
@@ -976,7 +1044,14 @@
 					}
 				})
 
-				return { show, hide }
+				return {
+					show,
+					hide,
+					getConfirmed: () => confirmedValue,
+					setConfirmed: (v) => {
+						confirmedValue = v
+					},
+				}
 			}
 
 			const departureAC = setupAutocomplete(
@@ -993,10 +1068,25 @@
 			// Submit form -> post to worker
 			form.addEventListener('submit', (ev) => {
 				ev.preventDefault()
+				clearFieldError(departureInput, departureErrorEl)
+				clearFieldError(arrivalInput, arrivalErrorEl)
 				const dep = departureInput.value.trim()
 				const arr = arrivalInput.value.trim()
 				if (!dep || !arr) {
 					statusEl.textContent = t('status.fill')
+					return
+				}
+
+				// Guard: a field is invalid if its value was never confirmed through
+				// the autocomplete (or pre-confirmed for defaults / URL loading).
+				if (departureAC.getConfirmed() !== dep) {
+					departureInput.setAttribute('aria-invalid', 'true')
+					departureErrorEl.textContent = t('error.station.invalid')
+					return
+				}
+				if (arrivalAC.getConfirmed() !== arr) {
+					arrivalInput.setAttribute('aria-invalid', 'true')
+					arrivalErrorEl.textContent = t('error.station.invalid')
 					return
 				}
 
@@ -1168,8 +1258,14 @@
 				const arr = params.get('a')
 				const dateParam = params.get('t')
 				if (dep !== null || arr !== null) {
-					if (dep !== null) departureInput.value = dep
-					if (arr !== null) arrivalInput.value = arr
+					if (dep !== null) {
+						departureInput.value = dep
+						departureAC.setConfirmed(dep)
+					}
+					if (arr !== null) {
+						arrivalInput.value = arr
+						arrivalAC.setConfirmed(arr)
+					}
 					if (dateParam) datetimeInput.value = dateParam
 					form.dispatchEvent(
 						new Event('submit', {
@@ -1205,7 +1301,9 @@
 				datetimeInput.value = loc
 				if (!loadFromURL()) {
 					departureInput.value = 'Lyon Part-Dieu'
+					departureAC.setConfirmed('Lyon Part-Dieu')
 					arrivalInput.value = 'Grenoble'
+					arrivalAC.setConfirmed('Grenoble')
 				}
 			})()
 
