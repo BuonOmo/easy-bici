@@ -31,11 +31,11 @@
 
 		<style>
 			/*
-      Theme mapping:
-      - Light theme uses Catppuccin 'latte'
-      - Dark theme uses Catppuccin 'macchiato'
-      We map a small set of semantic variables used in the UI to the palette variables.
-    */
+			   Theme mapping:
+			   - Light theme uses Catppuccin 'latte'
+			   - Dark theme uses Catppuccin 'macchiato'
+			   We map a small set of semantic variables used in the UI to the palette variables.
+			 */
 			:root {
 				/* fallback semantic tokens (will be overridden by theme-specific mappings) */
 				--bg: #f7f8fb;
@@ -106,24 +106,28 @@
 
 			header {
 				display: flex;
-				align-items: center;
-				justify-content: space-between;
+				align-items: flex-end;
+				justify-content: left;
 				gap: 16px;
 				margin-bottom: 18px;
 			}
 
 			.brand {
 				display: flex;
-				gap: 12px;
-				align-items: baseline;
+				flex-direction: column;
+				padding-bottom: 0.2rem;
 				line-height: 1;
+				* {
+					margin: 0;
+				}
 			}
-			h1 {
-				margin: 0;
-				font-size: 1.25rem;
-				letter-spacing: -0.2px;
-			}
-			p.lead {
+			/* Logo sizing */
+			.brand-logo {
+				height: 2.8rem;
+				width: auto;
+				height: 4.8rem;
+				width: auto;
+				display: block;
 				margin: 0;
 				color: var(--muted);
 				font-size: 0.95rem;
@@ -644,6 +648,7 @@
 
 		<div class="container">
 			<header>
+				<img class="brand-logo" src="assets/logo.svg" alt="easy bici" />
 				<div class="brand">
 					<h1>Easy Bici</h1>
 					<p class="lead" data-i18n="lead">
