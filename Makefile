@@ -9,7 +9,7 @@ test:
 	python -m http.server --directory test 8001
 
 build:
-	ruby scripts/extract_bike_friendly.rb
+	ruby scripts/filter_bike_gtfs.rb
 	ruby scripts/build_timetable.rb
 
 clean:

@@ -1,0 +1,44 @@
+name: Update GTFS timetable
+
+on:
+  schedule:
+    - cron: '0 4 * * 1' # Every Monday at 04:00 UTC
+  workflow_dispatch:
+
+jobs:
+  update-timetable:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler: none
+
+      - name: Download GTFS data
+        run: curl -fsSL -o gtfs.zip https://eu.ftp.opendatasoft.com/sncf/plandata/Export_OpenData_SNCF_GTFS_NewTripId.zip
+
+      - name: Extract GTFS data
+        run: |
+          mkdir -p data/gtfs
+          unzip -o gtfs.zip -d data/gtfs
+          rm gtfs.zip
+
+      - name: Filter bike-friendly GTFS data
+        run: ruby scripts/filter_bike_gtfs.rb
+
+      - name: Build timetable
+        run: ruby scripts/build_timetable.rb
+
+      - name: Commit changes
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: 'data/timetable.bin data/meta.json'
+          message: 'auto: update gtfs and timetable'
+          default_author: github_actions
