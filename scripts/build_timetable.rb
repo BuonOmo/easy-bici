@@ -16,7 +16,7 @@
 #   stop_times.txt     — per-trip stop times (parsed line-by-line, 400 K rows)
 #   calendar_dates.txt — service active dates
 #
-# Outputs (data/gtfs/):
+# Outputs (data/):
 #   timetable.bin      — VTER v1 binary timetable
 #   meta.json          — {"version": "<feed_version>"}
 #
@@ -69,7 +69,8 @@ require 'set'
 # ---------------------------------------------------------------------------
 
 SCRIPT_DIR = File.expand_path(__dir__)
-GTFS_DIR   = File.expand_path(File.join(SCRIPT_DIR, '..', 'data', 'gtfs'))
+DATA_DIR   = File.expand_path(File.join(SCRIPT_DIR, '..', 'data'))
+GTFS_DIR   = File.join(DATA_DIR, 'gtfs')
 
 FEED_INFO_FILE      = File.join(GTFS_DIR, 'feed_info.txt')
 STOPS_FILE          = File.join(GTFS_DIR, 'stops.txt')
@@ -77,8 +78,8 @@ TRIPS_FILE          = File.join(GTFS_DIR, 'trips.txt')
 STOP_TIMES_FILE     = File.join(GTFS_DIR, 'stop_times.txt')
 CALENDAR_DATES_FILE = File.join(GTFS_DIR, 'calendar_dates.txt')
 
-OUTPUT_BIN  = File.join(GTFS_DIR, 'timetable.bin')
-OUTPUT_META = File.join(GTFS_DIR, 'meta.json')
+OUTPUT_BIN  = File.join(DATA_DIR, 'timetable.bin')
+OUTPUT_META = File.join(DATA_DIR, 'meta.json')
 
 FORMAT_VERSION = 1
 MAX_UINT16     = 65_535
@@ -140,7 +141,41 @@ puts "          feed_version = #{feed_version}"
 #   trips_array   Array sorted trip_ids (determines trip_idx in connections)
 # ---------------------------------------------------------------------------
 
-puts 'Step 2/7  Reading trips.txt …'
+# ---------------------------------------------------------------------------
+# Step 2 — Build stop-point → stop-area parent map
+#
+# Each StopPoint row in stops.txt has a parent_station field pointing to its
+# StopArea.  We normalise all stop IDs that appear in stop_times to their
+# parent StopArea so that transfers between different operators at the same
+# physical station (e.g. TER ↔ TGV INOUI at Lyon Part-Dieu) work
+# transparently in the CSA algorithm.
+# ---------------------------------------------------------------------------
+
+puts 'Step 2/8  Reading stop parent map from stops.txt …'
+
+stop_parent = {}  # stop_id → parent_station_id  (nil when no parent)
+
+CSV.foreach(STOPS_FILE, headers: true, encoding: 'bom|utf-8') do |row|
+  sid    = row['stop_id'].to_s.strip
+  parent = row['parent_station'].to_s.strip
+  stop_parent[sid] = parent.empty? ? nil : parent
+end
+
+# Return the canonical station ID: the parent StopArea when one exists, else self.
+normalize_stop = ->(sid) { stop_parent.fetch(sid, nil) || sid }
+
+puts "          #{stop_parent.count { |_, v| v }} stop points mapped to a parent area"
+
+# ---------------------------------------------------------------------------
+# Step 3 — Read trips.txt
+#
+# Builds:
+#   trip_service  Hash  trip_id → service_id
+#   services_set  Set   all unique service_ids (for calendar filtering)
+#   trips_array   Array sorted trip_ids (determines trip_idx in connections)
+# ---------------------------------------------------------------------------
+
+puts 'Step 3/8  Reading trips.txt …'
 
 trip_service = {}  # trip_id (String) → service_id (String)
 
@@ -179,7 +214,7 @@ puts "          #{trip_service.size} trips, #{services_array.size} unique servic
 #   trip_stops  Hash  trip_id → Array<{stop_id, arr_secs, dep_secs, stop_sequence}>
 # ---------------------------------------------------------------------------
 
-puts 'Step 3/7  Reading stop_times.txt (line-by-line) …'
+puts 'Step 4/8  Reading stop_times.txt (line-by-line) …'
 
 trip_stops    = Hash.new { |h, k| h[k] = [] }  # trip_id → entries
 st_rows_read  = 0
@@ -232,7 +267,7 @@ puts "          #{trip_stops.size} trips with stop_time data"
 #   arr_secs = stops[i+1].arr_secs      (arrival at the NEXT stop)
 # ---------------------------------------------------------------------------
 
-puts 'Step 4/7  Building connections …'
+puts 'Step 5/8  Building connections …'
 
 raw_connections = []
 
@@ -244,8 +279,8 @@ trip_stops.each do |trip_id, stops|
 
   (stops.size - 1).times do |i|
     raw_connections << {
-      dep_stop:   stops[i][:stop_id],
-      arr_stop:   stops[i + 1][:stop_id],
+      dep_stop:   normalize_stop.call(stops[i][:stop_id]),
+      arr_stop:   normalize_stop.call(stops[i + 1][:stop_id]),
       dep_secs:   stops[i][:dep_secs],
       arr_secs:   stops[i + 1][:arr_secs],  # arrival time at the next stop
       trip_id:    trip_id,
@@ -264,13 +299,13 @@ trip_stops = nil
 GC.start
 
 # ---------------------------------------------------------------------------
-# Step 5 — Build stops index
+# Step 6 — Build stops index
 #
 # Only stops actually referenced by at least one connection are stored.
 # Stops missing from stops.txt receive a graceful fallback (name=id, lat/lon=0).
 # ---------------------------------------------------------------------------
 
-puts 'Step 5/7  Reading stops.txt …'
+puts 'Step 6/8  Reading stops.txt …'
 
 # Collect the set of stop_ids that appear in connections.
 used_stop_ids = Set.new
@@ -313,14 +348,14 @@ puts "          #{stops_array.size} stops (#{missing_stops.size} fallback(s), " 
      "#{used_stop_ids.size - missing_stops.size} from stops.txt)"
 
 # ---------------------------------------------------------------------------
-# Step 6 — Read calendar_dates.txt
+# Step 7 — Read calendar_dates.txt
 #
 # Only rows with exception_type == "1" (service added) are retained.
 # Rows whose service_id is not present in trips.txt are skipped.
 # Result is sorted by date integer (ascending).
 # ---------------------------------------------------------------------------
 
-puts 'Step 6/7  Reading calendar_dates.txt …'
+puts 'Step 7/8  Reading calendar_dates.txt …'
 
 known_services  = Set.new(services_array)
 calendar_entries = []  # Array<{date: Integer, service_idx: Integer}>
@@ -364,10 +399,10 @@ puts "          #{calendar_entries.size} entries kept, #{cal_skipped} skipped"
 end
 
 # ---------------------------------------------------------------------------
-# Step 7 — Write outputs
+# Step 8 — Write outputs
 # ---------------------------------------------------------------------------
 
-puts 'Step 7/7  Writing binary output …'
+puts 'Step 8/8  Writing binary output …'
 
 File.open(OUTPUT_BIN, 'wb') do |f|
   # ---- Header (24 bytes) --------------------------------------------------
