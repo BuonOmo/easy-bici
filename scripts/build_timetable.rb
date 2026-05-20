@@ -126,7 +126,7 @@ end
 # Validate inputs
 # ---------------------------------------------------------------------------
 
-puts "voyage-ter / build_timetable — VTER v#{FORMAT_VERSION}"
+puts "easy-bici / build_timetable — VTER v#{FORMAT_VERSION}"
 puts
 
 [FEED_INFO_FILE, STOPS_FILE, TRIPS_FILE, STOP_TIMES_FILE, CALENDAR_DATES_FILE].each do |f|

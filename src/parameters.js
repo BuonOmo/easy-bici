@@ -1,5 +1,5 @@
 /**
- * Global parameters for the voyage-ter project.
+ * Global parameters for the easy-bici project.
  *
  * ╭────────────────────────────────────────────────────────────────────────╮
  * │ Copyright (C) 2026-present  Ulysse Buonomo                             │

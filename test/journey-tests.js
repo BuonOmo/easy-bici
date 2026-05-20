@@ -1,5 +1,5 @@
 /**
- * Shared test cases for voyage-ter.
+ * Shared test cases for easy-bici.
  *
  * This module is environment-agnostic: it works in a browser (test/index.html)
  * and in Node.js (test/run.js).  Callers supply the test harness primitives
