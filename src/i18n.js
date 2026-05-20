@@ -46,7 +46,7 @@ export const translations = {
 		'page.title': 'Voyage TER — Recherche',
 
 		// Header
-		lead: 'Les trajets vélo\u202f+\u202ftrain les plus courts\u202f—\u202fdémo',
+		lead: 'Voyager en train avec mon vélo',
 
 		// Form labels & placeholders
 		'form.aria': 'Rechercher des connexions',
@@ -100,7 +100,7 @@ export const translations = {
 		'page.title': 'Voyage TER — Search',
 
 		// Header
-		lead: 'Shortest bike-friendly train paths — demo',
+		lead: 'Bike-friendly train journeys',
 
 		// Form labels & placeholders
 		'form.aria': 'Search connections',
