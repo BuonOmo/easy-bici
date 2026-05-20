@@ -5,6 +5,9 @@ serve:
 	python -m http.server 8000
 
 test:
+	node test/run.js
+
+test-browser:
 	open http://localhost:8000/test
 
 build:
