@@ -1,6 +1,6 @@
 ![Easy Bici — Voyager en train avec mon vélo](assets/logo-with-name.svg)
 
-[![Tests](https://github.com/BuonOmo/voyage-ter/actions/workflows/test.yml/badge.svg)](https://github.com/BuonOmo/voyage-ter/actions/workflows/test.yml)
+[![Tests](https://github.com/BuonOmo/easy-bici/actions/workflows/test.yml/badge.svg)](https://github.com/BuonOmo/easy-bici/actions/workflows/test.yml)
 
 # Design
 
