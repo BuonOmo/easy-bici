@@ -77,8 +77,9 @@ export const translations = {
 					return `${n}\u202foptions trouvées.`
 			}
 		},
-		'status.error': 'Erreur\u202f: ',
-		'status.fill': 'Veuillez renseigner le départ et l\u2019arrivée.',
+		'status.error': 'Erreur : ',
+		'status.fill': 'Veuillez renseigner le départ et l’arrivée.',
+		'error.station.invalid': 'Gare non reconnue, essayez une autre.',
 
 		// Results
 		'results.none': 'Aucun résultat.',
@@ -124,6 +125,7 @@ export const translations = {
 		'status.found': (n) => `Found ${n} option(s).`,
 		'status.error': 'Error: ',
 		'status.fill': 'Please fill both departure and arrival.',
+		'error.station.invalid': 'Station not recognized, try another.',
 
 		// Results
 		'results.none': 'No results.',

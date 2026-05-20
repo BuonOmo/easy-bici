@@ -301,9 +301,9 @@ export function materializeConnections(
 }
 
 /**
- * Find stop IDs whose normalised name matches query.
- * Returns exact matches first; falls back to partial matches
- * (query is a substring of the stop name, or vice-versa).
+ * Find stop IDs whose normalised name is an exact match for the query.
+ * Returns an empty array when no stop matches, which the caller treats as an
+ * invalid station name.
  *
  * @param {string}               query
  * @param {Map<string,string[]>} stopsByNorm
@@ -313,15 +313,8 @@ export function findMatchingStops(query, stopsByNorm) {
 	const norm = normalizeName(query)
 	if (!norm) return []
 
-	// Exact match
-	if (stopsByNorm.has(norm)) return [...stopsByNorm.get(norm)]
-
-	// Partial match
-	const results = []
-	for (const [key, ids] of stopsByNorm) {
-		if (key.includes(norm) || norm.includes(key)) results.push(...ids)
-	}
-	return results
+	const exact = stopsByNorm.get(norm)
+	return exact ? [...exact] : []
 }
 
 /**
