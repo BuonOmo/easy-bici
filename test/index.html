@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>voyage-ter — tests</title>
+		<style>
+			*,
+			*::before,
+			*::after {
+				box-sizing: border-box;
+			}
+			body {
+				font-family:
+					ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+				max-width: 720px;
+				margin: 2rem auto;
+				padding: 0 1.25rem;
+				background: #0f1117;
+				color: #c9d1d9;
+			}
+			h1 {
+				font-size: 1rem;
+				color: #8b949e;
+				margin-bottom: 1.5rem;
+				letter-spacing: 0.05em;
+			}
+			h1 span {
+				color: #e6edf3;
+			}
+			.suite {
+				margin-bottom: 0.5rem;
+			}
+			.test {
+				display: flex;
+				flex-direction: column;
+				padding: 0.4rem 0.7rem;
+				margin: 0.2rem 0;
+				border-radius: 4px;
+				border-left: 3px solid transparent;
+				font-size: 0.9rem;
+			}
+			.test.pending {
+				border-color: #d29922;
+				color: #d29922;
+			}
+			.test.pass {
+				border-color: #3fb950;
+				color: #3fb950;
+			}
+			.test.fail {
+				border-color: #f85149;
+				color: #f85149;
+			}
+			.test .detail {
+				font-size: 0.8rem;
+				margin-top: 0.25rem;
+				opacity: 0.75;
+				white-space: pre-wrap;
+			}
+			#summary {
+				margin-top: 1.5rem;
+				padding: 0.5rem 0.75rem;
+				border-radius: 4px;
+				font-size: 0.9rem;
+				font-weight: bold;
+			}
+			#summary.pending {
+				background: #21262d;
+				color: #8b949e;
+			}
+			#summary.all-pass {
+				background: #1f3a25;
+				color: #3fb950;
+			}
+			#summary.has-fail {
+				background: #3d1c1c;
+				color: #f85149;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>voyage-ter / <span>test suite</span></h1>
+		<div id="output"></div>
+		<div id="summary" class="pending">⏳ running…</div>
+
+		<script type="module">
+			import {
+				loadGTFS,
+				materializeConnections,
+				findMatchingStops,
+			} from '../src/gtfs-loader.js'
+			import { findOptions } from '../src/csa.js'
+
+			// ── Minimal test harness ───────────────────────────────────────────────
+
+			const results = []
+			const outputEl = document.getElementById('output')
+			const summaryEl = document.getElementById('summary')
+
+			/** Throw if condition is falsy, surfacing a readable assertion message. */
+			function assert(condition, message) {
+				if (!condition) throw new Error(message)
+			}
+
+			/** Run a single named test, updating the DOM live. */
+			async function test(name, fn) {
+				const div = document.createElement('div')
+				div.className = 'test pending'
+				div.textContent = `⏳  ${name}`
+				outputEl.appendChild(div)
+
+				try {
+					await fn()
+					div.className = 'test pass'
+					div.textContent = `✅  ${name}`
+					results.push({ name, passed: true })
+				} catch (err) {
+					div.className = 'test fail'
+					div.innerHTML =
+						`❌  ${name}` +
+						`<div class="detail">${err.message}</div>`
+					results.push({ name, passed: false, error: err.message })
+				}
+			}
+
+			// ── Shared GTFS data (fetched once for all tests) ──────────────────────
+
+			let gtfs = null
+
+			async function withGTFS() {
+				// GTFS data is served relative to the project root, one level up.
+				if (!gtfs) gtfs = await loadGTFS('../data')
+				return gtfs
+			}
+
+			// ── Test cases ─────────────────────────────────────────────────────────
+
+			/**
+			 * Grenoble → Vannes, departing on a weekday morning.
+			 *
+			 * This route requires a service-type change at an intermediate station
+			 * (e.g. TER → TGV INOUI at Lyon Part-Dieu).  It was failing because the
+			 * binary timetable stored operator-specific StopPoint IDs
+			 * (StopPoint:OCETrain TER-XXXXXXXX, StopPoint:OCETGV INOUI-XXXXXXXX, …)
+			 * for the same physical station, making CSA unable to transfer between
+			 * them.  The fix normalises all stop IDs to their parent StopArea in
+			 * build_timetable.rb, so inter-service transfers work transparently.
+			 */
+			await test('Grenoble → Vannes: finds journeys departing on a weekday morning', async () => {
+				const { rawConnections, stopsByNorm, servicesByDate } =
+					await withGTFS()
+
+				const origins = findMatchingStops('Grenoble', stopsByNorm)
+				const dests = findMatchingStops('Vannes', stopsByNorm)
+				assert(origins.length > 0, `No stops found matching "Grenoble"`)
+				assert(dests.length > 0, `No stops found matching "Vannes"`)
+
+				// Monday 7 July 2026 — a weekday within the feed's validity range
+				// (20260420 – 20260930) confirmed present in calendar_dates.txt.
+				const dateStr = '20260707'
+				const connections = materializeConnections(
+					rawConnections,
+					servicesByDate,
+					dateStr,
+				)
+				assert(
+					connections.length > 0,
+					`No connections materialised for ${dateStr}`,
+				)
+
+				// Earliest departure at 08:00 local time on that date.
+				const t0 = Math.floor(
+					new Date(2026, 6 /* July */, 7, 8, 0, 0).getTime() / 1000,
+				)
+				const options = findOptions(connections, origins, dests, t0, 3)
+
+				assert(
+					options.length > 0,
+					`Expected ≥1 journey from Grenoble to Vannes on ${dateStr} after 08:00, got 0.\n` +
+						`origins=${JSON.stringify(origins)}\ndests=${JSON.stringify(dests)}\n` +
+						`connections on that day: ${connections.length}`,
+				)
+			})
+
+			// ── Summary ────────────────────────────────────────────────────────────
+
+			const passed = results.filter((r) => r.passed).length
+			const failed = results.filter((r) => !r.passed).length
+			summaryEl.textContent = `${passed} passed, ${failed} failed`
+			summaryEl.className = failed === 0 ? 'all-pass' : 'has-fail'
+		</script>
+	</body>
+</html>

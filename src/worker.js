@@ -25,7 +25,7 @@ import { findOptions } from './csa.js'
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 
-const GTFS_BASE = 'data/gtfs'
+const GTFS_BASE = '../data'
 const MAX_RESULTS = 3
 
 // ── GTFS state (loaded once, shared across all search calls) ──────────────────
