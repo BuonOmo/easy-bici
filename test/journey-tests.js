@@ -67,7 +67,11 @@ export function findTestDate(servicesByDate) {
  *     dateStr      — YYYYMMDD used (for error messages)
  *     t0           — Unix timestamp for 08:00 on dateStr
  */
-export async function runTests(test, assert, { connections, stopsByNorm, dateStr, t0 }) {
+export async function runTests(
+	test,
+	assert,
+	{ connections, stopsByNorm, dateStr, t0 },
+) {
 	/**
 	 * Grenoble → Vannes, departing on a weekday morning.
 	 *

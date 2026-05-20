@@ -19,12 +19,16 @@
  * ╰────────────────────────────────────────────────────────────────────────╯
  *
  * Usage:
- *   import { init, t, setLocale, getLocale } from './src/i18n.js';
- *   init();          // auto-detects locale and applies translations to the DOM
- *   t('some.key');   // returns translated string in the current locale
+ *   import { init, t, setLocale, getLocale, setI18n, clearI18n } from './src/i18n.js';
+ *   init();                    // auto-detects locale and applies translations to the DOM
+ *   t('some.key');             // returns translated string in the current locale
+ *   setI18n(el, 'some.key');   // sets el.textContent and tracks it for locale changes
+ *   clearI18n(el);             // clears el.textContent and removes tracking attributes
  *
  * DOM conventions:
  *   data-i18n="key"             → element.textContent
+ *   data-i18n-args="[…]"        → JSON args forwarded to t() for data-i18n
+ *   data-i18n-append="suffix"   → raw suffix appended after the translated text
  *   data-i18n-placeholder="key" → element.placeholder
  *   data-i18n-title="key"       → element.title
  *   data-i18n-aria-label="key"  → element.setAttribute('aria-label', …)
@@ -192,12 +196,51 @@ export function t(key, ...args) {
 }
 
 /**
+ * Set `el.textContent` to the translation of `key` (forwarding `args`) and
+ * track the key, args, and optional raw `append` suffix on the element via
+ * data attributes so that `applyTranslations()` can refresh it on locale
+ * changes.
+ *
+ * @param {HTMLElement} el
+ * @param {string} key
+ * @param {any[]} [args]
+ * @param {string} [append]
+ */
+export function setI18n(el, key, args = [], append = '') {
+	el.dataset.i18n = key
+	if (args.length) el.dataset.i18nArgs = JSON.stringify(args)
+	else delete el.dataset.i18nArgs
+	if (append) el.dataset.i18nAppend = append
+	else delete el.dataset.i18nAppend
+	el.textContent = t(key, ...args) + append
+}
+
+/**
+ * Clear `el.textContent` and remove all i18n tracking attributes so the
+ * element is no longer refreshed by `applyTranslations()`.
+ *
+ * @param {HTMLElement} el
+ */
+export function clearI18n(el) {
+	el.textContent = ''
+	delete el.dataset.i18n
+	delete el.dataset.i18nArgs
+	delete el.dataset.i18nAppend
+}
+
+/**
  * Walk the DOM and apply translations to all annotated elements.
  * Also updates `document.title` and `<html lang>`.
  */
 export function applyTranslations() {
 	document.querySelectorAll('[data-i18n]').forEach((el) => {
-		el.textContent = t(/** @type {HTMLElement} */ (el).dataset.i18n)
+		const htmlEl = /** @type {HTMLElement} */ (el)
+		const key = htmlEl.dataset.i18n
+		const args = htmlEl.dataset.i18nArgs
+			? JSON.parse(htmlEl.dataset.i18nArgs)
+			: []
+		const append = htmlEl.dataset.i18nAppend ?? ''
+		el.textContent = t(key, ...args) + append
 	})
 	document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
 		/** @type {HTMLInputElement} */ el.placeholder = t(
