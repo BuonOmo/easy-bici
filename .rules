@@ -19,3 +19,8 @@
   │ along with this program.  If not, see <https://www.gnu.org/licenses/>. │
   ╰────────────────────────────────────────────────────────────────────────╯
   ```
+
+# UX/UI
+
+- The interface must be responsive
+- We must follow [the catppuccin style guide](https://github.com/catppuccin/catppuccin/blob/main/docs/style-guide.md)
