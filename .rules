@@ -1,6 +1,7 @@
 # Creating a new file
 
-- every script file should have a LICENSE header such as:
+- Every script file should have a LICENSE header such below, see other files
+  of same languages as example:
   ```
   ╭────────────────────────────────────────────────────────────────────────╮
   │ Copyright (C) 2026-present  Ulysse Buonomo                             │
@@ -24,3 +25,12 @@
 
 - The interface must be responsive
 - We must follow [the catppuccin style guide](https://github.com/catppuccin/catppuccin/blob/main/docs/style-guide.md)
+
+# Code
+
+- Constistancy is a top-priority:
+	- Comments should always use the same style.
+	- File headers should be similar.
+	- Code style should be homogenous.
+- You should avoid appending to pre-existing comments, but rather rewrite them.
+- Your comments should not describe history but the current state.

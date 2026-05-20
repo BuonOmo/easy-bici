@@ -17,11 +17,11 @@
 │ along with this program.  If not, see <https://www.gnu.org/licenses/>. │
 ╰────────────────────────────────────────────────────────────────────────╯
 -->
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Voyage TER — Search</title>
+  <title data-i18n="page.title">Voyage TER — Recherche</title>
 
   <!-- Catppuccin palette (contains variables for multiple flavors: latte, macchiato, mocha, frappe) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@catppuccin/palette/css/catppuccin.css">
@@ -366,14 +366,56 @@
       .result{flex-direction:column}
       .summary{min-width:0;flex:none;width:100%;border-right:none;border-bottom:1px dashed var(--border);padding-right:0;padding-bottom:10px;margin-bottom:2px;flex-direction:row;flex-wrap:wrap;gap:4px 16px}
     }
+
+    /* Language switcher button */
+    .lang-switch {
+      position: absolute;
+      top: 18px;
+      right: 90px;
+      z-index: 9999;
+      height: 30px;
+      padding: 0 14px;
+      box-sizing: border-box;
+      display: inline-flex;
+      align-items: center;
+      border-radius: 15px;
+      border: 1px solid var(--border);
+      background: var(--glass);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      color: var(--text);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+      line-height: 1;
+    }
+    .lang-switch:hover {
+      background: var(--surface);
+      transform: scale(1.07);
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .lang-switch:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
   </style>
+
+  <!-- Prevent flash of unstyled theme before JS runs -->
+  <script>
+    try {
+      if (localStorage.getItem('voyage-ter:theme') === 'dark')
+        document.documentElement.setAttribute('data-theme', 'dark');
+    } catch (_) {}
+  </script>
 </head>
 
 <body>
 
   <!-- Fixed light/dark theme toggle ---------------------------------------->
-  <label class="theme-switch" title="Toggle light / dark theme">
-    <input type="checkbox" id="themeToggle" aria-label="Switch to dark mode">
+  <label class="theme-switch" data-i18n-title="theme.switch.title" title="Basculer clair / sombre">
+    <input type="checkbox" id="themeToggle" aria-label="Passer en mode sombre">
     <span class="switch-track">
       <span class="switch-thumb">
         <!-- Schematic sun -->
@@ -400,40 +442,44 @@
     </span>
   </label>
 
+  <button id="langSwitch" class="lang-switch" data-i18n="lang.switch" data-i18n-title="lang.switch.title" title="Switch to English">EN</button>
+
   <div class="container">
     <header>
       <div class="brand">
         <div>
           <h1>Voyage TER</h1></div>
-          <p class="lead">Shortest bike-friendly train paths — demo</p>
+          <p class="lead" data-i18n="lead">Les trajets vélo + train les plus courts — démo</p>
         </div>
       </div>
     </header>
 
     <main class="card" role="main">
-      <form id="searchForm" class="search-form" autocomplete="off" role="search" aria-label="Search connections">
+      <form id="searchForm" class="search-form" autocomplete="off" role="search" aria-label="Rechercher des connexions" data-i18n-aria-label="form.aria">
         <div class="field ac-wrapper" id="departureWrapper">
-          <label for="departure">Departure</label>
-          <input id="departure" name="departure" type="text" required placeholder="Station or address (e.g. Lyon Part-Dieu)"
+          <label for="departure" data-i18n="form.label.departure">Départ</label>
+          <input id="departure" name="departure" type="text" required
+            placeholder="Gare ou adresse (ex. Lyon Part-Dieu)" data-i18n-placeholder="form.departure.placeholder"
             autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="departureList" aria-haspopup="listbox" />
-          <ul id="departureList" class="ac-list" role="listbox" aria-label="Departure suggestions"></ul>
+          <ul id="departureList" class="ac-list" role="listbox" aria-label="Suggestions de départ" data-i18n-aria-label="form.departure.suggestions"></ul>
         </div>
 
         <div class="field ac-wrapper" id="arrivalWrapper">
-          <label for="arrival">Arrival</label>
-          <input id="arrival" name="arrival" type="text" required placeholder="Station or address (e.g. Grenoble)"
+          <label for="arrival" data-i18n="form.label.arrival">Arrivée</label>
+          <input id="arrival" name="arrival" type="text" required
+            placeholder="Gare ou adresse (ex. Grenoble)" data-i18n-placeholder="form.arrival.placeholder"
             autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="arrivalList" aria-haspopup="listbox" />
-          <ul id="arrivalList" class="ac-list" role="listbox" aria-label="Arrival suggestions"></ul>
+          <ul id="arrivalList" class="ac-list" role="listbox" aria-label="Suggestions d'arrivée" data-i18n-aria-label="form.arrival.suggestions"></ul>
         </div>
 
         <div class="field">
-          <label for="datetime">Departure date & time</label>
+          <label for="datetime" data-i18n="form.label.datetime">Date et heure de départ</label>
           <input id="datetime" name="datetime" type="datetime-local" />
         </div>
 
         <div class="controls">
-          <button type="button" id="reverseBtn" class="reverse-btn" title="Swap departure and arrival">⇄ Reverse</button>
-          <button id="submitBtn" class="primary" type="submit">Search</button>
+          <button type="button" id="reverseBtn" class="reverse-btn" title="Échanger départ et arrivée" data-i18n-title="btn.reverse.title" data-i18n="btn.reverse">⇄ Inverser</button>
+          <button id="submitBtn" class="primary" type="submit" data-i18n="btn.search">Rechercher</button>
         </div>
       </form>
 
@@ -444,44 +490,56 @@
 
   </div>
 
-  <script>
-    // Theme toggle logic ----------------------------------------------------
-    (function () {
-      const toggle = document.getElementById('themeToggle');
-      const THEME_KEY = 'voyage-ter:theme';
+  <script type="module">
+    import { init as i18nInit, t, setLocale, getLocale } from './src/i18n.js';
 
-      function applyTheme(theme) {
-        const isDark = theme === 'dark';
-        if (isDark) {
-          document.documentElement.setAttribute('data-theme', 'dark');
-          toggle.checked = true;
-          toggle.setAttribute('aria-label', 'Switch to light mode');
-        } else {
-          document.documentElement.removeAttribute('data-theme');
-          toggle.checked = false;
-          toggle.setAttribute('aria-label', 'Switch to dark mode');
-        }
-        try { localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light'); } catch (e) {}
+    // ── i18n ─────────────────────────────────────────────────────────────────
+    i18nInit();   // detect locale, translate all data-i18n elements
+
+    // ── Theme toggle ──────────────────────────────────────────────────────────
+    const toggle = document.getElementById('themeToggle');
+    const THEME_KEY = 'voyage-ter:theme';
+
+    function applyTheme(theme) {
+      const isDark = theme === 'dark';
+      if (isDark) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        toggle.checked = true;
+        toggle.setAttribute('aria-label', t('theme.to-light'));
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        toggle.checked = false;
+        toggle.setAttribute('aria-label', t('theme.to-dark'));
       }
+      try { localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light'); } catch (e) {}
+    }
 
-      // initial theme: persisted -> prefers-color-scheme -> light
-      function initialTheme() {
-        try {
-          const stored = localStorage.getItem(THEME_KEY);
-          if (stored === 'light' || stored === 'dark') return stored;
-        } catch (e) {}
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-          return 'dark';
-        }
-        return 'light';
+    function initialTheme() {
+      try {
+        const stored = localStorage.getItem(THEME_KEY);
+        if (stored === 'light' || stored === 'dark') return stored;
+      } catch (e) {}
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'dark';
       }
+      return 'light';
+    }
 
-      toggle.addEventListener('change', () => applyTheme(toggle.checked ? 'dark' : 'light'));
+    toggle.addEventListener('change', () => applyTheme(toggle.checked ? 'dark' : 'light'));
+    applyTheme(initialTheme());
 
-      applyTheme(initialTheme());
-    })();
+    // Keep theme aria-label in sync when locale changes
+    document.addEventListener('localechange', () => {
+      applyTheme(toggle.checked ? 'dark' : 'light');
+      if (lastResults !== null) renderResults(lastResults);
+    });
 
-    // Worker setup ----------------------------------------------------------
+    // ── Language switcher ─────────────────────────────────────────────────────
+    document.getElementById('langSwitch').addEventListener('click', () => {
+      setLocale(getLocale() === 'fr' ? 'en' : 'fr');
+    });
+
+    // ── Worker setup ──────────────────────────────────────────────────────────
     // Worker script lives in src/.
     // It expects messages of the form { type: 'search', query, requestId }
     // and posts back { type: 'results', results, requestId }.
@@ -491,28 +549,32 @@
     // Keep map of pending requests if needed for ignoring stale responses
     const pendingRequests = new Map();
 
+    // Last rendered results — re-rendered when locale changes
+    let lastResults = null;
+
     // DOM elements
-    const form = document.getElementById('searchForm');
+    const form           = document.getElementById('searchForm');
     const departureInput = document.getElementById('departure');
-    const arrivalInput = document.getElementById('arrival');
-    const datetimeInput = document.getElementById('datetime');
-    const resultsEl = document.getElementById('results');
-    const statusEl = document.getElementById('status');
-    const reverseBtn = document.getElementById('reverseBtn');
-    const submitBtn = document.getElementById('submitBtn');
+    const arrivalInput   = document.getElementById('arrival');
+    const datetimeInput  = document.getElementById('datetime');
+    const resultsEl      = document.getElementById('results');
+    const statusEl       = document.getElementById('status');
+    const reverseBtn     = document.getElementById('reverseBtn');
+    const submitBtn      = document.getElementById('submitBtn');
 
     // Wire up worker messages
     worker.addEventListener('message', (e) => {
       const { type, results, requestId, message } = e.data || {};
       if (type === 'loading') {
-        statusEl.innerHTML = '<span class="spinner" aria-hidden="true"></span> ' + (message || 'Loading…');
+        statusEl.innerHTML = '<span class="spinner" aria-hidden="true"></span> ' + t('status.loading');
       } else if (type === 'results') {
+        lastResults = results;
         renderResults(results);
         const count = results ? results.length : 0;
-        statusEl.textContent = 'Found ' + count + ' option(s).';
+        statusEl.textContent = t('status.found', count);
         submitBtn.disabled = false;
       } else if (type === 'error') {
-        statusEl.textContent = 'Error: ' + (e.data.error || 'unknown error');
+        statusEl.textContent = t('status.error') + (e.data.error || 'unknown error');
         submitBtn.disabled = false;
       } else if (type === 'suggestions') {
         const ac = e.data.field === 'departure' ? departureAC : arrivalAC;
@@ -633,7 +695,7 @@
       const dep = departureInput.value.trim();
       const arr = arrivalInput.value.trim();
       if (!dep || !arr) {
-        statusEl.textContent = 'Please fill both departure and arrival.';
+        statusEl.textContent = t('status.fill');
         return;
       }
 
@@ -656,7 +718,7 @@
       const requestId = Date.now() + Math.random();
       pendingRequests.set(requestId, { query, time: Date.now() });
 
-      statusEl.innerHTML = '<span class="spinner" aria-hidden="true"></span> Searching...';
+      statusEl.innerHTML = '<span class="spinner" aria-hidden="true"></span> ' + t('status.searching');
       submitBtn.disabled = true;
       resultsEl.innerHTML = '';
 
@@ -669,7 +731,7 @@
       if (!results || results.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'muted';
-        empty.textContent = 'No results.';
+        empty.textContent = t('results.none');
         resultsEl.appendChild(empty);
         return;
       }
@@ -689,11 +751,11 @@
 
         const depRow = document.createElement('div');
         depRow.className = 'time-row';
-        depRow.innerHTML = '<span class="time-label">Dep</span><span class="time-val">' + fmtTime(departTime) + '</span>';
+        depRow.innerHTML = '<span class="time-label">' + t('results.dep') + '</span><span class="time-val">' + fmtTime(departTime) + '</span>';
 
         const arrRow = document.createElement('div');
         arrRow.className = 'time-row';
-        arrRow.innerHTML = '<span class="time-label">Arr</span><span class="time-val">' + fmtTime(arrivalTime) + '</span>';
+        arrRow.innerHTML = '<span class="time-label">' + t('results.arr') + '</span><span class="time-val">' + fmtTime(arrivalTime) + '</span>';
 
         const totalDur = document.createElement('div');
         totalDur.className = 'total-dur';
@@ -756,11 +818,11 @@
       const params = new URLSearchParams(location.search);
       const dep = params.get('d');
       const arr = params.get('a');
-      const t = params.get('t');
+      const dateParam = params.get('t');
       if (dep !== null || arr !== null) {
         if (dep !== null) departureInput.value = dep;
         if (arr !== null) arrivalInput.value = arr;
-        if (t) datetimeInput.value = t;
+        if (dateParam) datetimeInput.value = dateParam;
         form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
         return true;
       }
@@ -771,7 +833,7 @@
     window.addEventListener('popstate', loadFromURL);
 
     // Set default datetime then prefill example values or load from URL
-    (function init(){
+    (function initDatetime(){
       const now = new Date();
       now.setSeconds(0,0);
       const mins = now.getMinutes();
