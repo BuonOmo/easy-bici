@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+╭────────────────────────────────────────────────────────────────────────╮
+│ Copyright (C) 2026-present  Ulysse Buonomo                             │
+│                                                                        │
+│ This program is free software: you can redistribute it and/or modify   │
+│ it under the terms of the GNU General Public License as published by   │
+│ the Free Software Foundation, either version 3 of the License, or      │
+│  (at your option) any later version.                                   │
+│                                                                        │
+│ This program is distributed in the hope that it will be useful,        │
+│ but WITHOUT ANY WARRANTY; without even the implied warranty of         │
+│ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          │
+│ GNU General Public License for more details.                           │
+│                                                                        │
+│ You should have received a copy of the GNU General Public License      │
+│ along with this program.  If not, see <https://www.gnu.org/licenses/>. │
+╰────────────────────────────────────────────────────────────────────────╯
+-->
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 370 90"
+  role="img"
+  aria-label="Easy Bici — Voyager en train avec mon vélo"
+>
+  <title>Easy Bici — Voyager en train avec mon vélo</title>
+
+  <style>
+    /* Light: Catppuccin Latte */
+    .bg     { fill: #eff1f5; }
+    .title  { fill: #4c4f69; font-size: 28px; font-weight: 700; font-family: system-ui, -apple-system, sans-serif; }
+    .sub    { fill: #6c6f85; font-size: 14px; font-family: system-ui, -apple-system, sans-serif; }
+    .rail   { stroke: #8c8fa1; fill: none; }
+    .wheel  { stroke: #1e66f5; fill: none; }
+    .hub    { fill: #1e66f5; }
+    .frame  { stroke: #fe640b; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .accent { stroke: #1e66f5; fill: none; stroke-linecap: round; }
+    /* Dark: Catppuccin Macchiato */
+    @media (prefers-color-scheme: dark) {
+      .bg     { fill: #24273a; }
+      .title  { fill: #cad3f5; }
+      .sub    { fill: #a5adcb; }
+      .rail   { stroke: #6e738d; }
+      .wheel  { stroke: #8aadf4; }
+      .hub    { fill: #8aadf4; }
+      .frame  { stroke: #f5a97f; }
+      .accent { stroke: #8aadf4; }
+    }
+  </style>
+
+  <!-- Background -->
+  <rect class="bg" width="370" height="90" rx="10"/>
+
+  <!-- Logo (88×70 viewBox scaled to 94×74) -->
+  <svg x="10" y="8" width="94" height="74" viewBox="0 0 88 70">
+
+    <!-- Train rails -->
+    <line class="rail" stroke-width="2"   stroke-linecap="round" x1="4"  y1="56" x2="4"  y2="66"/>
+    <line class="rail" stroke-width="2"   stroke-linecap="round" x1="14" y1="56" x2="14" y2="66"/>
+    <line class="rail" stroke-width="2"   stroke-linecap="round" x1="24" y1="56" x2="24" y2="66"/>
+    <line class="rail" stroke-width="2"   stroke-linecap="round" x1="34" y1="56" x2="34" y2="66"/>
+    <line class="rail" stroke-width="2"   stroke-linecap="round" x1="44" y1="56" x2="44" y2="66"/>
+    <line class="rail" stroke-width="2"   stroke-linecap="round" x1="54" y1="56" x2="54" y2="66"/>
+    <line class="rail" stroke-width="2"   stroke-linecap="round" x1="64" y1="56" x2="64" y2="66"/>
+    <line class="rail" stroke-width="2"   stroke-linecap="round" x1="74" y1="56" x2="74" y2="66"/>
+    <line class="rail" stroke-width="2"   stroke-linecap="round" x1="84" y1="56" x2="84" y2="66"/>
+    <line class="rail" stroke-width="2.5" x1="0"  y1="59" x2="86" y2="59"/>
+    <line class="rail" stroke-width="2.5" x1="0"  y1="63" x2="86" y2="63"/>
+
+    <!-- Back wheel -->
+    <circle class="wheel" cx="26" cy="44" r="14" stroke-width="2.2"/>
+    <circle class="hub"   cx="26" cy="44" r="2.5"/>
+
+    <!-- Front wheel -->
+    <circle class="wheel" cx="68" cy="44" r="14" stroke-width="2.2"/>
+    <circle class="hub"   cx="68" cy="44" r="2.5"/>
+
+    <!-- Frame -->
+    <g class="frame" stroke-width="2.5">
+      <line x1="46" y1="46" x2="26" y2="44"/>  <!-- chain stay -->
+      <line x1="38" y1="28" x2="26" y2="44"/>  <!-- seat stay  -->
+      <line x1="46" y1="46" x2="38" y2="28"/>  <!-- seat tube  -->
+      <line x1="38" y1="28" x2="63" y2="28"/>  <!-- top tube   -->
+      <line x1="46" y1="46" x2="63" y2="28"/>  <!-- down tube  -->
+      <line x1="63" y1="28" x2="68" y2="44"/>  <!-- fork       -->
+    </g>
+
+    <!-- Saddle -->
+    <line class="accent" stroke-width="2" x1="38" y1="28" x2="37" y2="21"/>
+    <path class="accent" stroke-width="3" d="M 31,21 Q 37,19 43,21"/>
+
+    <!-- Handlebar -->
+    <line class="accent" stroke-width="2"   x1="63" y1="28" x2="64" y2="22"/>
+    <line class="accent" stroke-width="2.5" x1="59" y1="22" x2="69" y2="22"/>
+
+  </svg>
+
+  <!-- Title and subtitle -->
+  <text class="title" x="120" y="55">Easy Bici</text>
+  <text class="sub"   x="120" y="76">Voyager en train avec mon v&#233;lo</text>
+
+</svg>
