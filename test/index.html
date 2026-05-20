@@ -201,6 +201,72 @@
 				)
 			})
 
+			/**
+			 * Grenoble → Nantes, departing on a weekday morning.
+			 *
+			 * The most natural routing goes Grenoble → Lyon Part-Dieu (TER) then
+			 * Lyon Part-Dieu → Nantes (Intercités / TGV).  This test verifies that
+			 * at least one of the returned journey options uses exactly that
+			 * two-train itinerary — no spurious intermediate stops or extra changes.
+			 */
+			await test('Grenoble → Nantes: finds a 2-train journey via Lyon Part-Dieu', async () => {
+				const { rawConnections, stopsByNorm, servicesByDate } =
+					await withGTFS()
+
+				const origins = findMatchingStops('Grenoble', stopsByNorm)
+				const dests = findMatchingStops('Nantes', stopsByNorm)
+				const lyonPD = findMatchingStops('Lyon Part-Dieu', stopsByNorm)
+				assert(origins.length > 0, `No stops found matching "Grenoble"`)
+				assert(dests.length > 0, `No stops found matching "Nantes"`)
+				assert(
+					lyonPD.length > 0,
+					`No stops found matching "Lyon Part-Dieu"`,
+				)
+
+				// Monday 7 July 2026 — same weekday used by the Grenoble → Vannes test.
+				const dateStr = '20260707'
+				const connections = materializeConnections(
+					rawConnections,
+					servicesByDate,
+					dateStr,
+				)
+				assert(
+					connections.length > 0,
+					`No connections materialised for ${dateStr}`,
+				)
+
+				// Earliest departure at 08:00 local time on that date.
+				const t0 = Math.floor(
+					new Date(2026, 6 /* July */, 7, 8, 0, 0).getTime() / 1000,
+				)
+				// Fetch up to 5 options to maximise the chance of finding a direct
+				// two-leg routing among the earliest departures.
+				const options = findOptions(connections, origins, dests, t0, 5)
+
+				assert(
+					options.length > 0,
+					`Expected ≥1 journey from Grenoble to Nantes on ${dateStr} after 08:00, got 0.\n` +
+						`origins=${JSON.stringify(origins)}\ndests=${JSON.stringify(dests)}\n` +
+						`connections on that day: ${connections.length}`,
+				)
+
+				const lyonPDSet = new Set(lyonPD)
+				const twoLegViaLyon = options.some(
+					({ path }) =>
+						path.length === 2 &&
+						lyonPDSet.has(path[0].arr_stop) &&
+						lyonPDSet.has(path[1].dep_stop),
+				)
+
+				assert(
+					twoLegViaLyon,
+					`Expected ≥1 journey with exactly 2 legs (Grenoble→Lyon Part-Dieu, Lyon Part-Dieu→Nantes), ` +
+						`but none found among ${options.length} option(s).\n` +
+						`options=${JSON.stringify(options.map((o) => o.path.map((l) => l.dep_stop + '→' + l.arr_stop)))}\n` +
+						`Lyon Part-Dieu stops: ${JSON.stringify(lyonPD)}`,
+				)
+			})
+
 			// ── Summary ────────────────────────────────────────────────────────────
 
 			const passed = results.filter((r) => r.passed).length
