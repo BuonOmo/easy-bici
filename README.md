@@ -25,6 +25,9 @@ the other requiring nodejs installed.
 - later we should consider adding bike connection directly in
   the trip search, since we know user has a bike!
 - we should also print results on a map rather than a list
+- fix responsive version title
+- make trips easy to buy afterwards with link to the corresponding train search (or something...?)
+- check that timetable.bin doesn't contain a timestamp that would always make it change
 
 [^1]: https://arxiv.org/pdf/1703.05997
 [^2]: https://github.com/trainline-eu/csa-challenge
