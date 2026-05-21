@@ -1097,6 +1097,7 @@
 				clearFieldError(arrivalInput, arrivalErrorEl)
 				const dep = departureInput.value.trim()
 				const arr = arrivalInput.value.trim()
+				const t = datetimeInput.value
 				if (!dep || !arr) {
 					statusSpinnerEl.hidden = true
 					setI18n(statusTextEl, 'status.fill')
@@ -1120,20 +1121,17 @@
 				const urlParams = new URLSearchParams()
 				urlParams.set('d', dep)
 				urlParams.set('a', arr)
-				if (datetimeInput.value) urlParams.set('t', datetimeInput.value)
+				urlParams.set('t', t)
+
 				const newURL = location.pathname + '?' + urlParams.toString()
 				if (location.search !== '?' + urlParams.toString()) {
-					history.pushState(
-						{ dep, arr, datetime: datetimeInput.value },
-						'',
-						newURL,
-					)
+					history.pushState({ dep, arr, t }, '', newURL)
 				}
 
 				const query = {
 					departure: dep,
 					arrival: arr,
-					datetime: datetimeInput.value || null,
+					datetime: t || null,
 				}
 
 				const requestId = Date.now() + Math.random()
@@ -1148,6 +1146,24 @@
 			})
 
 			// Helpers & rendering --------------------------------------------------
+			function toLocalISOString(date) {
+				const newDate = new Date(
+					date.getTime() - date.getTimezoneOffset() * 60000,
+				)
+				return newDate.toISOString().slice(0, -1)
+			}
+
+			const defaultTime = (function () {
+				const time = new Date()
+				time.setSeconds(0, 0)
+				time.setMinutes(0)
+				if (time.getHours() > 6) {
+					time.setDate(time.getDate() + 1)
+				}
+				time.setHours(6)
+				return toLocalISOString(time)
+			})()
+
 			function renderResults(results) {
 				resultsEl.innerHTML = ''
 				if (!results || results.length === 0) {
@@ -1281,8 +1297,8 @@
 				const params = new URLSearchParams(location.search)
 				const dep = params.get('d')
 				const arr = params.get('a')
-				const dateParam = params.get('t')
-				if (dep !== null || arr !== null) {
+				let t = params.get('t')
+				if (dep !== null || arr !== null || t !== null) {
 					if (dep !== null) {
 						departureInput.value = dep
 						departureAC.setConfirmed(dep)
@@ -1291,7 +1307,11 @@
 						arrivalInput.value = arr
 						arrivalAC.setConfirmed(arr)
 					}
-					if (dateParam) datetimeInput.value = dateParam
+
+					if (t !== null) {
+						datetimeInput.value = defaultTime > t ? defaultTime : t
+					}
+
 					form.dispatchEvent(
 						new Event('submit', {
 							bubbles: true,
@@ -1305,30 +1325,13 @@
 
 			// Handle browser back/forward navigation
 			window.addEventListener('popstate', loadFromURL)
-
-			// Set default datetime then prefill example values or load from URL
-			;(function initDatetime() {
-				const now = new Date()
-				now.setSeconds(0, 0)
-				const mins = now.getMinutes()
-				now.setMinutes(Math.ceil(mins / 15) * 15)
-				const pad = (n) => String(n).padStart(2, '0')
-				const loc =
-					now.getFullYear() +
-					'-' +
-					pad(now.getMonth() + 1) +
-					'-' +
-					pad(now.getDate()) +
-					'T' +
-					pad(now.getHours()) +
-					':' +
-					pad(now.getMinutes())
-				datetimeInput.value = loc
+			;(function initFormValues() {
 				if (!loadFromURL()) {
 					departureInput.value = 'Lyon Part-Dieu'
 					departureAC.setConfirmed('Lyon Part-Dieu')
 					arrivalInput.value = 'Grenoble'
 					arrivalAC.setConfirmed('Grenoble')
+					datetimeInput.value = defaultTime
 				}
 			})()
 
