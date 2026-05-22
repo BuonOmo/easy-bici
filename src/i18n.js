@@ -106,6 +106,10 @@ export const translations = {
 		'theme.to-dark': 'Passer en mode sombre',
 		'theme.to-light': 'Passer en mode clair',
 
+		// WIP construction banner
+		'banner.wip': 'faites vos retours ici !',
+		'banner.wip.subject': '[EasyBici] C\u2019est super mais <...>',
+
 		// Footer
 		'footer.nav.aria': 'Liens du site',
 		'footer.about': 'À propos',
@@ -168,6 +172,10 @@ export const translations = {
 		'theme.switch.title': 'Toggle light / dark theme',
 		'theme.to-dark': 'Switch to dark mode',
 		'theme.to-light': 'Switch to light mode',
+
+		// WIP construction banner
+		'banner.wip': 'feedbacks welcome here!',
+		'banner.wip.subject': '[EasyBici] It\u2019s great but <...>',
 
 		// Footer
 		'footer.nav.aria': 'Site links',

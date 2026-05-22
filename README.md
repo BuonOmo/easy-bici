@@ -32,6 +32,7 @@ the other requiring nodejs installed.
   - [ ] intercité
   - [ ] ...
 - Check for train prices somehow, and show them.
+- Add transiliens https://data.sncf.com/explore/dataset/sncf-transilien-gtfs/information/
 - Contact 1.2.Train to see if there is a way to generate
   links with prepopulated urls.
 - check some route types (it seems that there are some bus routes: do we want them?):
