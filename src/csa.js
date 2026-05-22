@@ -20,15 +20,11 @@
  * ╰────────────────────────────────────────────────────────────────────────╯
  */
 
-import { MIN_CONNECTION_TIME_SECONDS } from './parameters.js'
-
-// ── Train-type constants ───────────────────────────────────────────────────────
-
-/** Trains requiring a bike fee (surcharge per leg). */
-const FEE_TYPES = new Set(['ic', 'icn', 'ice'])
-
-/** Trains requiring the bike to be dismantled/bagged (penalty per leg). */
-const DISMANTLE_TYPES = new Set(['ouigo', 'lyria'])
+import {
+	MIN_CONNECTION_TIME_SECONDS,
+	FEE_TYPES,
+	DISMANTLE_TYPES,
+} from './parameters.js'
 
 /** Binary search: first index i where connections[i].dep_timestamp >= t0. */
 function lowerBound(connections, t0) {
@@ -189,8 +185,8 @@ export function runCSA(connections, origins, dests, t0) {
  *   − 20² Per change        (absolute penalty: –20 × (path.length - 1)²)
  *   + 50  Shorter duration  (normalised 0–50;  50 = shortest in pool)
  *   + 25  Closest departure (normalised 0–25;  25 = closest to t0 in pool)
- *   − 30  TGV/IC trains     (absolute penalty: bike surcharge applies)
- *   − 75  OUIGO trains      (absolute penalty: bike must be dismantled)
+ *   − 30  Fee-type legs     (absolute penalty: bike surcharge applies)
+ *   − 75  Dismantle-type legs (absolute penalty: bike must be dismantled)
  *
  * @param {{ path: Array, departureTime: number, arrivalTime: number }} option
  * @param {number} t0  Original requested departure (Unix seconds)

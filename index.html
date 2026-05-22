@@ -879,6 +879,7 @@
 				setI18n,
 				clearI18n,
 			} from './src/i18n.js'
+			import { FEE_TYPES, DISMANTLE_TYPES } from './src/parameters.js'
 
 			// ── i18n ─────────────────────────────────────────────────────────────────
 			i18nInit() // detect locale, translate all data-i18n elements
@@ -1381,12 +1382,12 @@
 								isTerBookable ? 'a' : 'span',
 							)
 							typeBadge.className = 'train-type'
-							if (c.type === 'tgv' || c.type === 'ic') {
+							if (FEE_TYPES.has(c.type)) {
 								typeBadge.classList.add('bike-charge')
 								typeBadge.dataset.i18nTitle = 'bike.charge'
 								typeBadge.title = t('bike.charge')
 							}
-							if (c.type === 'ouigo') {
+							if (DISMANTLE_TYPES.has(c.type)) {
 								typeBadge.classList.add('bike-dismantle')
 								typeBadge.dataset.i18nTitle = 'bike.dismantle'
 								typeBadge.title = t('bike.dismantle')

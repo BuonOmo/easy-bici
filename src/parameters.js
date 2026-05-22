@@ -30,3 +30,15 @@ export const MIN_CONNECTION_TIME_SECONDS = 5 * 60
 
 // Optional convenience export (named) in case milliseconds are needed elsewhere.
 export const MIN_CONNECTION_TIME_MS = MIN_CONNECTION_TIME_SECONDS * 1000
+
+/**
+ * Train types that require a paid bike reservation (bike fee).
+ * These trains allow bikes but charge an extra fee.
+ */
+export const FEE_TYPES = new Set(['tgv', 'ic', 'icn', 'ice'])
+
+/**
+ * Train types that require the bike to be dismantled / bagged.
+ * No assembled bike is allowed on these services.
+ */
+export const DISMANTLE_TYPES = new Set(['ouigo', 'lyr'])
