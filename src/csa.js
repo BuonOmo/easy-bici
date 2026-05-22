@@ -315,18 +315,53 @@ export function findOptions(connections, origins, dests, t0, maxResults = 10) {
 
 	// 2. Deduplicate by path fingerprint (same trips at the same times).
 	const seen = new Set()
-	const all = []
+	const unique = []
 	for (const j of candidates) {
 		const key = j.path.map((l) => `${l.trip_id}:${l.dep_timestamp}`).join('|')
 		if (!seen.has(key)) {
 			seen.add(key)
-			all.push(j)
+			unique.push(j)
+		}
+	}
+
+	if (unique.length === 0) return []
+
+	// 3. Remove Pareto-dominated journeys within structurally identical groups.
+	// Two journeys are structurally identical when every leg shares the same
+	// origin stop, destination stop, and service type.  Only within such a
+	// group does a later-departing / earlier-arriving journey strictly dominate
+	// an earlier one: both offer the same trip quality so the extra wait is
+	// pointless.  Journeys with different structures are never compared — they
+	// may differ in bike-friendliness (free vs fee vs dismantle) and scoring
+	// must be allowed to weigh those trade-offs.
+	const legKey = (j) =>
+		j.path.map((l) => `${l.dep_stop}:${l.arr_stop}:${l.type}`).join('|')
+
+	const groups = new Map()
+	for (const j of unique) {
+		const key = legKey(j)
+		if (!groups.has(key)) groups.set(key, [])
+		groups.get(key).push(j)
+	}
+
+	const all = []
+	for (const group of groups.values()) {
+		for (const j of group) {
+			const dominated = group.some(
+				(other) =>
+					other !== j &&
+					other.departureTime >= j.departureTime &&
+					other.arrivalTime <= j.arrivalTime &&
+					(other.departureTime > j.departureTime ||
+						other.arrivalTime < j.arrivalTime),
+			)
+			if (!dominated) all.push(j)
 		}
 	}
 
 	if (all.length === 0) return []
 
-	// 3. Compute pool-wide min/max for normalised scoring.
+	// 4. Compute pool-wide min/max for normalised scoring.
 	let minArrival = Infinity,
 		maxArrival = -Infinity
 	let minDuration = Infinity,
@@ -354,7 +389,7 @@ export function findOptions(connections, origins, dests, t0, maxResults = 10) {
 		maxOffset,
 	}
 
-	// 3. Score, sort descending, return top maxResults.
+	// 5. Score, sort descending, return top maxResults.
 	return all
 		.map((j) => ({ ...j, score: scoreOption(j, t0, stats) }))
 		.sort((a, b) => b.score - a.score)

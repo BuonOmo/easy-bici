@@ -143,6 +143,144 @@ export async function runTests(
 	})
 
 	/**
+	 * Synthetic connections — Pareto dominance filter.
+	 *
+	 * Four direct trips all share the same origin (A) and destination (B),
+	 * but two different service types:
+	 *
+	 *   T1    dep=100  arr=200  type=''    — same structure as T2, dominated by it
+	 *   T2    dep=150  arr=200  type=''    — Pareto-optimal within its group
+	 *   T_fee dep=160  arr=190  type='tgv' — different structural group from T1/T2
+	 *   T3    dep=200  arr=350  type=''    — Pareto-optimal within its group
+	 *
+	 * T_fee departs later AND arrives earlier than T2. A naïve cross-type Pareto
+	 * filter would therefore remove T2, hiding the bike-fine option from the
+	 * user. The structural-group filter must prevent that: only journeys in the
+	 * same group (same stops × type per leg) are compared, so T2 survives.
+	 */
+	await test('Pareto filter: dominated journeys are removed', () => {
+		const syntheticConnections = [
+			// T1: dominated within its group by T2 (same arrival, later departure)
+			{
+				dep_stop: 'A',
+				arr_stop: 'B',
+				dep_timestamp: 100,
+				arr_timestamp: 200,
+				trip_id: 'T1',
+				type: '',
+			},
+			// T2: bike-fine, Pareto-optimal within its group
+			{
+				dep_stop: 'A',
+				arr_stop: 'B',
+				dep_timestamp: 150,
+				arr_timestamp: 200,
+				trip_id: 'T2',
+				type: '',
+			},
+			// T_fee: tgv (fee-required), departs later AND arrives earlier than T2
+			//        but belongs to a different structural group — must NOT remove T2
+			{
+				dep_stop: 'A',
+				arr_stop: 'B',
+				dep_timestamp: 160,
+				arr_timestamp: 190,
+				trip_id: 'T_fee',
+				type: 'tgv',
+			},
+			// T3: bike-fine, Pareto-optimal (later departure, later arrival)
+			{
+				dep_stop: 'A',
+				arr_stop: 'B',
+				dep_timestamp: 200,
+				arr_timestamp: 350,
+				trip_id: 'T3',
+				type: '',
+			},
+		]
+
+		const options = findOptions(syntheticConnections, ['A'], ['B'], 0, 10)
+
+		assert(
+			options.length === 3,
+			`Expected 3 journeys (T2, T_fee, T3), got ${options.length}: ` +
+				JSON.stringify(
+					options.map((o) => ({
+						dep: o.departureTime,
+						arr: o.arrivalTime,
+						type: o.path[0].type,
+					})),
+				),
+		)
+		assert(
+			options.every((o) => o.departureTime !== 100),
+			`Dominated journey T1 (dep=100, arr=200, type='') must not appear in results`,
+		)
+		assert(
+			options.some((o) => o.departureTime === 150 && o.arrivalTime === 200),
+			`Bike-fine journey T2 (dep=150, arr=200) must survive even though T_fee ` +
+				`departs later (160) and arrives earlier (190)`,
+		)
+		assert(
+			options.some((o) => o.departureTime === 160 && o.arrivalTime === 190),
+			`Fee journey T_fee (dep=160, arr=190) must be present`,
+		)
+		assert(
+			options.some((o) => o.departureTime === 200 && o.arrivalTime === 350),
+			`Journey T3 (dep=200, arr=350) must be present`,
+		)
+	})
+
+	/**
+	 * Grenoble → Paris Gare de Lyon: no returned journey is dominated by another.
+	 *
+	 * This route is known to produce many journeys sharing the same final leg
+	 * (Chambéry → Paris) but with different — often long — waits at Chambéry.
+	 * After the Pareto filter, no result should be strictly worse than another
+	 * in both departure time and arrival time.
+	 */
+	await test('Grenoble → Paris Gare de Lyon: no result is Pareto-dominated', () => {
+		const origins = findMatchingStops('Grenoble', stopsByNorm)
+		const dests = findMatchingStops(
+			'Paris Gare de Lyon Hall 1 - 2',
+			stopsByNorm,
+		)
+		assert(origins.length > 0, `No stops found matching "Grenoble"`)
+		assert(
+			dests.length > 0,
+			`No stops found matching "Paris Gare de Lyon Hall 1 - 2"`,
+		)
+
+		const options = findOptions(connections, origins, dests, t0, 10)
+		assert(
+			options.length > 0,
+			`Expected ≥1 journey from Grenoble to Paris Gare de Lyon on ${dateStr} after 08:00, got 0`,
+		)
+
+		for (const j of options) {
+			const jKey = j.path
+				.map((l) => `${l.dep_stop}:${l.arr_stop}:${l.type}`)
+				.join('|')
+			const dominatedBy = options.find(
+				(other) =>
+					other !== j &&
+					other.path
+						.map((l) => `${l.dep_stop}:${l.arr_stop}:${l.type}`)
+						.join('|') === jKey &&
+					other.departureTime >= j.departureTime &&
+					other.arrivalTime <= j.arrivalTime &&
+					(other.departureTime > j.departureTime ||
+						other.arrivalTime < j.arrivalTime),
+			)
+			assert(
+				dominatedBy === undefined,
+				`Journey (dep=${j.departureTime}, arr=${j.arrivalTime}) is dominated by ` +
+					`(dep=${dominatedBy?.departureTime}, arr=${dominatedBy?.arrivalTime})`,
+			)
+		}
+	})
+
+	/**
 	 * Lyon Part-Dieu → Grenoble, departing on a weekday morning.
 	 *
 	 * The K6 TER line (Lyon Part-Dieu – Grenoble) runs daily.  At least one
