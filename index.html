@@ -1287,6 +1287,13 @@
 				car_ter: 'Car TER',
 			}
 
+			/** i18n key for the booking link label of each bookable type. */
+			const BOOK_I18N_KEY = {
+				ter: 'ter.book',
+				car_ter: 'car-ter.book',
+				tt: 'tt.book',
+			}
+
 			function renderResults(results) {
 				resultsEl.innerHTML = ''
 				if (!results || results.length === 0) {
@@ -1417,7 +1424,7 @@
 
 						if (c.type) {
 							const isTerBookable =
-								(c.type === 'ter' || c.type === 'car_ter') &&
+								c.type in BOOK_I18N_KEY &&
 								c.dep_ter_id &&
 								c.arr_ter_id
 							const typeBadge = document.createElement(
@@ -1438,12 +1445,7 @@
 								typeBadge.href = buildTerUrl(c)
 								typeBadge.target = '_blank'
 								typeBadge.rel = 'noopener noreferrer'
-								setI18n(
-									typeBadge,
-									c.type === 'car_ter'
-										? 'car-ter.book'
-										: 'ter.book',
-								)
+								setI18n(typeBadge, BOOK_I18N_KEY[c.type])
 							} else {
 								typeBadge.textContent =
 									TRAIN_TYPE_LABELS[c.type] || c.type

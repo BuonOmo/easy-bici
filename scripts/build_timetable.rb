@@ -166,13 +166,13 @@ end
 puts 'Step 1/7  Reading stop parent map from stops.txt …'
 
 stop_parent = {}  # stop_id → parent_station_id  (nil when no parent)
-ter_stop_ids = Set.new  # numeric station IDs (String) with TER or Car TER service
+ter_stop_ids = Set.new  # numeric station IDs (String) with TER, Car TER, or TramTrain service
 
 CSV.foreach(STOPS_FILE, headers: true, encoding: 'bom|utf-8') do |row|
   sid    = row['stop_id'].to_s.strip
   parent = row['parent_station'].to_s.strip
   stop_parent[sid] = parent.empty? ? nil : parent
-  m = sid.match(/^StopPoint:OCE(?:Train|Car) TER-(\d+)$/)
+  m = sid.match(/^StopPoint:OCE(?:(?:Train|Car) TER|TramTrain)-(\d+)$/)
   ter_stop_ids << m[1] if m
 end
 
