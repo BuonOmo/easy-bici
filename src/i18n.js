@@ -86,7 +86,6 @@ export const translations = {
 		'error.station.invalid': 'Gare non reconnue, essayez une autre.',
 
 		// Results
-		'results.none': 'Aucun résultat.',
 		'results.dep': 'Dép',
 		'results.arr': 'Arr',
 		'results.arr.next-day': 'arrivée le lendemain',
@@ -147,13 +146,21 @@ export const translations = {
 		'status.searching': 'Searching\u2026',
 		'status.loading': 'Loading\u2026',
 		/** @param {number} n */
-		'status.found': (n) => `Found ${n} option(s).`,
+		'status.found': (n) => {
+			switch (n) {
+				case 0:
+					return 'No results.'
+				case 1:
+					return 'Found one option.'
+				default:
+					return `Found ${n} options.`
+			}
+		},
 		'status.error': 'Error: ',
 		'status.fill': 'Please fill both departure and arrival.',
 		'error.station.invalid': 'Station not recognized, try another.',
 
 		// Results
-		'results.none': 'No results.',
 		'results.dep': 'Dep',
 		'results.arr': 'Arr',
 		'results.arr.next-day': 'arrival the next day',
