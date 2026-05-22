@@ -39,6 +39,6 @@ jobs:
       - name: Commit changes
         uses: EndBug/add-and-commit@v9
         with:
-          add: 'data/timetable.bin data/meta.json'
+          add: 'data/timetable.bin'
           message: 'auto: update gtfs and timetable'
           default_author: github_actions
