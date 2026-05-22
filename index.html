@@ -800,7 +800,7 @@
 							name="departure"
 							type="text"
 							required
-							placeholder="Gare ou adresse (ex. Lyon Part-Dieu)"
+							placeholder="Gare (ex. Lyon Part-Dieu)"
 							data-i18n-placeholder="form.departure.placeholder"
 							autocomplete="off"
 							role="combobox"
@@ -833,7 +833,7 @@
 							name="arrival"
 							type="text"
 							required
-							placeholder="Gare ou adresse (ex. Grenoble)"
+							placeholder="Gare (ex. Grenoble)"
 							data-i18n-placeholder="form.arrival.placeholder"
 							autocomplete="off"
 							role="combobox"
@@ -1615,10 +1615,10 @@
 			window.addEventListener('popstate', loadFromURL)
 			;(function initFormValues() {
 				if (!loadFromURL()) {
-					departureInput.value = 'Lyon Part-Dieu'
-					departureAC.setConfirmed('Lyon Part-Dieu')
-					arrivalInput.value = 'Grenoble'
-					arrivalAC.setConfirmed('Grenoble')
+					departureInput.value = 'Grenoble'
+					departureAC.setConfirmed('Grenoble')
+					arrivalInput.value = 'Vannes'
+					arrivalAC.setConfirmed('Vannes')
 					datetimeInput.value = defaultTime
 				}
 			})()

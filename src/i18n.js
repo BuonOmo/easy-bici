@@ -55,10 +55,10 @@ export const translations = {
 		// Form labels & placeholders
 		'form.aria': 'Rechercher des connexions',
 		'form.label.departure': 'Départ',
-		'form.departure.placeholder': 'Gare ou adresse (ex. Lyon Part-Dieu)',
+		'form.departure.placeholder': 'Gare (ex. Lyon Part-Dieu)',
 		'form.departure.suggestions': 'Suggestions de départ',
 		'form.label.arrival': 'Arrivée',
-		'form.arrival.placeholder': 'Gare ou adresse (ex. Grenoble)',
+		'form.arrival.placeholder': 'Gare (ex. Grenoble)',
 		'form.arrival.suggestions': 'Suggestions d\u2019arrivée',
 		'form.label.datetime': 'Date et heure de départ',
 
@@ -131,10 +131,10 @@ export const translations = {
 		// Form labels & placeholders
 		'form.aria': 'Search connections',
 		'form.label.departure': 'Departure',
-		'form.departure.placeholder': 'Station or address (e.g. Lyon Part-Dieu)',
+		'form.departure.placeholder': 'Station (e.g. Lyon Part-Dieu)',
 		'form.departure.suggestions': 'Departure suggestions',
 		'form.label.arrival': 'Arrival',
-		'form.arrival.placeholder': 'Station or address (e.g. Grenoble)',
+		'form.arrival.placeholder': 'Station (e.g. Grenoble)',
 		'form.arrival.suggestions': 'Arrival suggestions',
 		'form.label.datetime': 'Departure date & time',
 
