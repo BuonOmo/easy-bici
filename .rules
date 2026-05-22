@@ -37,3 +37,4 @@
 - HTML Semantic is important, for instance un-ordered list should be `ul` and ordered list `ol`.
 - Try making the minimal possible diff. Do not change code style if already existing.
 - Avoid deadcode.
+- Think generic first, specific only if mandatory.
