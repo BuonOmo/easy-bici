@@ -44,4 +44,5 @@
 
 - It contains some important information, consider it
 - You should remove items from the `Roadmap` section once
-  you complete them. Or remind the user to do so.
+  you complete them. Or remind the user to do so. Only
+  work on one `Roadmap` element a time.
