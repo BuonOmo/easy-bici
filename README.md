@@ -26,7 +26,6 @@ the other requiring nodejs installed.
   - [x] TER
   - [ ] intercité
   - [ ] ...
-- check that timetable.bin doesn't contain a timestamp that would always make it change
 - check some route types (it seems that there are some bus routes: do we want them?):
   ```bash
 	$ cat data/gtfs/routes.txt | cut -d, -f6 | sort | uniq --count
