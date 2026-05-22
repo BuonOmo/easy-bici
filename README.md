@@ -4,6 +4,11 @@
 
 [![Tests](https://github.com/BuonOmo/easy-bici/actions/workflows/test.yml/badge.svg)](https://github.com/BuonOmo/easy-bici/actions/workflows/test.yml)
 
+# Train rules for bikes
+
+- [Lyria require dismantled bikes](https://www.tgv-lyria.com/fr/en/train-travel/onboard-services/luggage-bicycles)
+- [Conditions for TRGV INOUI, INTERCITÉS, TER and Transilien](https://www.sncf-voyageurs.com/fr/voyagez-avec-nous/train-et-velo/votre-velo-a-bord/)
+
 # Design
 
 This is a static front-end website, that is designed to
@@ -33,6 +38,10 @@ the other requiring nodejs installed.
     558 2 # rail
     172 3 # bus
   ```
+- Include cards in the search to apply reductions directly if possible.
+  This should be done once we have a better way to link to buy trains,
+  since it looks like the current ter.sncf.com link would need an
+  authenticated user to apply reductions anyway.
 
 ## Facilitate buying trip for a user
 

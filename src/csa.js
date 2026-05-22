@@ -28,7 +28,7 @@ import { MIN_CONNECTION_TIME_SECONDS } from './parameters.js'
 const FEE_TYPES = new Set(['ic', 'icn', 'ice'])
 
 /** Trains requiring the bike to be dismantled/bagged (penalty per leg). */
-const DISMANTLE_TYPES = new Set(['ouigo'])
+const DISMANTLE_TYPES = new Set(['ouigo', 'lyria'])
 
 /** Binary search: first index i where connections[i].dep_timestamp >= t0. */
 function lowerBound(connections, t0) {
