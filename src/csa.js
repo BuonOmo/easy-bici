@@ -181,12 +181,13 @@ export function runCSA(connections, origins, dests, t0) {
  * Higher score → better option.
  *
  * Criteria (all relative to the pool unless stated absolutely):
- *   +100  Earlier arrival   (normalised 0–100; 100 = earliest in pool)
- *   − 20² Per change        (absolute penalty: –20 × (path.length - 1)²)
- *   + 50  Shorter duration  (normalised 0–50;  50 = shortest in pool)
- *   + 25  Closest departure (normalised 0–25;  25 = closest to t0 in pool)
- *   − 30  Fee-type legs     (absolute penalty: bike surcharge applies)
- *   − 75  Dismantle-type legs (absolute penalty: bike must be dismantled)
+ *   +100  Direct train        (absolute)
+ *   + 33  Earlier arrival     (normalised 0–33; 33 = earliest in pool)
+ *   − 30  Per change          (absolute penalty: –30 × (path.length - 1))
+ *   + 39  Shorter duration    (normalised 0–39;  39 = shortest in pool)
+ *   + 25  Closest departure   (normalised 0–25;  25 = closest to t0 in pool)
+ *   − 37  Fee-type legs       (absolute penalty: bike surcharge applies)
+ *   − 88  Dismantle-type legs (absolute penalty: bike must be dismantled)
  *
  * @param {{ path: Array, departureTime: number, arrivalTime: number }} option
  * @param {number} t0  Original requested departure (Unix seconds)
@@ -209,18 +210,20 @@ function scoreOption(option, t0, stats) {
 		maxOffset,
 	} = stats
 
-	// Normalised arrival score (100 for earliest, 0 for latest)
+	// Normalised arrival score (33 for earliest, 0 for latest)
 	const arrRange = maxArrival - minArrival
 	const arrivalScore =
-		arrRange > 0 ? ((maxArrival - arrivalTime) / arrRange) * 100 : 100
+		arrRange > 0 ? ((maxArrival - arrivalTime) / arrRange) * 64 : 64
+
+	const directScore = path.length == 1 ? 100 : 0
 
 	// Absolute connection penalty
-	const connectionPenalty = -20 * (path.length - 1) * (path.length - 1)
+	const connectionPenalty = -30 * (path.length - 1)
 
-	// Normalised duration score (50 for shortest, 0 for longest)
+	// Normalised duration score (39 for shortest, 0 for longest)
 	const durRange = maxDuration - minDuration
 	const durationScore =
-		durRange > 0 ? ((maxDuration - duration) / durRange) * 50 : 50
+		durRange > 0 ? ((maxDuration - duration) / durRange) * 39 : 39
 
 	// Normalised departure-proximity score (25 for closest to t0, 0 for latest)
 	const offRange = maxOffset - minOffset
@@ -228,13 +231,14 @@ function scoreOption(option, t0, stats) {
 
 	// Fee penalty: bike surcharge applies (per leg)
 	const bikeChargePenalty =
-		-30 * path.filter((leg) => FEE_TYPES.has(leg.type)).length
+		-37 * path.filter((leg) => FEE_TYPES.has(leg.type)).length
 
 	// Dismantle penalty: bike must be bagged/dismantled (per leg)
 	const dismantlePenalty =
-		-75 * path.filter((leg) => DISMANTLE_TYPES.has(leg.type)).length
+		-88 * path.filter((leg) => DISMANTLE_TYPES.has(leg.type)).length
 
 	return (
+		directScore +
 		arrivalScore +
 		connectionPenalty +
 		durationScore +
