@@ -92,9 +92,10 @@ export const translations = {
 		'results.arr.next-day': 'arrivée le lendemain',
 		'results.arr.days-later': (n) => `arrivée ${n} jours plus tard`,
 
-		// TER / Car TER deep links
+		// TER / Car TER / TramTrain deep links
 		'ter.book': 'TER · Réserver →',
 		'car-ter.book': 'Car TER · Réserver →',
+		'tt.book': 'TramTrain · Réserver →',
 
 		// Train bike restrictions
 		'bike.charge': 'Supplément vélo obligatoire',
@@ -154,9 +155,10 @@ export const translations = {
 		'results.arr.next-day': 'arrival the next day',
 		'results.arr.days-later': (n) => `arrival ${n} days later`,
 
-		// TER / Car TER deep links
+		// TER / Car TER / TramTrain deep links
 		'ter.book': 'TER · Book →',
 		'car-ter.book': 'Car TER · Book →',
+		'tt.book': 'TramTrain · Book →',
 
 		// Train bike restrictions
 		'bike.charge': 'Bike fee required',
