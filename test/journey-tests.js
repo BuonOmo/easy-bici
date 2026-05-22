@@ -70,7 +70,7 @@ export function findTestDate(servicesByDate) {
 export async function runTests(
 	test,
 	assert,
-	{ connections, stopsByNorm, dateStr, t0 },
+	{ connections, stopsByNorm, stopsById, dateStr, t0 },
 ) {
 	/**
 	 * Grenoble → Vannes, departing on a weekday morning.
@@ -139,6 +139,62 @@ export async function runTests(
 				`but none found among ${options.length} option(s).\n` +
 				`options=${JSON.stringify(options.map((o) => o.path.map((l) => `${l.dep_stop}→${l.arr_stop}`)))}\n` +
 				`Lyon Part-Dieu stops: ${JSON.stringify(lyonPD)}`,
+		)
+	})
+
+	/**
+	 * Lyon Part-Dieu → Grenoble, departing on a weekday morning.
+	 *
+	 * The K6 TER line (Lyon Part-Dieu – Grenoble) runs daily.  At least one
+	 * of the returned options must be fully bookable on the SNCF TER website:
+	 * every leg's departure stop and arrival stop must carry a `ter_id` (set
+	 * by the TER Stop Indices section embedded in timetable.bin at build time).
+	 *
+	 * This catches regressions where the TER annotation is missing or the
+	 * binary parser fails to read the TER Stop Indices section.
+	 */
+	await test('Lyon Part-Dieu → Grenoble: at least one option is fully bookable on TER', () => {
+		const origins = findMatchingStops('Lyon Part-Dieu', stopsByNorm)
+		const dests = findMatchingStops('Grenoble', stopsByNorm)
+		assert(origins.length > 0, 'No stops found for "Lyon Part-Dieu"')
+		assert(dests.length > 0, 'No stops found for "Grenoble"')
+		assert(connections.length > 0, `No connections materialised for ${dateStr}`)
+
+		const options = findOptions(connections, origins, dests, t0, 5)
+		assert(
+			options.length > 0,
+			`Expected ≥1 journey from Lyon Part-Dieu to Grenoble on ${dateStr}, got 0.\n` +
+				`origins=${JSON.stringify(origins)}\ndests=${JSON.stringify(dests)}`,
+		)
+
+		// Simulate formatOption: every leg must have ter_id on both endpoints.
+		const fullyBookable = options.some((opt) =>
+			opt.path.every((leg) => {
+				const from = stopsById.get(leg.dep_stop)
+				const to = stopsById.get(leg.arr_stop)
+				return from?.ter_id && to?.ter_id
+			}),
+		)
+
+		assert(
+			fullyBookable,
+			`Expected ≥1 option where every leg has both dep_ter_id and arr_ter_id set, ` +
+				`but none found among ${options.length} option(s).\n` +
+				options
+					.map(
+						(o, i) =>
+							`  Option ${i + 1}: ` +
+							o.path
+								.map(
+									(l) =>
+										`${stopsById.get(l.dep_stop)?.stop_name}` +
+										`(ter=${stopsById.get(l.dep_stop)?.ter_id}) → ` +
+										`${stopsById.get(l.arr_stop)?.stop_name}` +
+										`(ter=${stopsById.get(l.arr_stop)?.ter_id})`,
+								)
+								.join(', '),
+					)
+					.join('\n'),
 		)
 	})
 }

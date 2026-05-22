@@ -90,6 +90,9 @@ export const translations = {
 		'results.dep': 'Dép',
 		'results.arr': 'Arr',
 
+		// TER deep link
+		'ter.book': 'TER · Réserver →',
+
 		// Theme toggle (dynamic aria-label set in JS)
 		'theme.switch.title': 'Basculer clair / sombre',
 		'theme.to-dark': 'Passer en mode sombre',
@@ -135,6 +138,9 @@ export const translations = {
 		'results.none': 'No results.',
 		'results.dep': 'Dep',
 		'results.arr': 'Arr',
+
+		// TER deep link
+		'ter.book': 'TER · Book →',
 
 		// Theme toggle
 		'theme.switch.title': 'Toggle light / dark theme',

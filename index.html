@@ -29,6 +29,9 @@
 			href="https://cdn.jsdelivr.net/npm/@catppuccin/palette/css/catppuccin.css"
 		/>
 
+		<!-- lz-string: compress/decompress search state for SNCF TER deep links -->
+		<script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
+
 		<style>
 			/*
 			   Theme mapping:
@@ -436,6 +439,25 @@
 				font-size: 0.85rem;
 				color: var(--muted);
 				margin-top: 8px;
+			}
+			.train-type {
+				display: inline-block;
+				font-size: 0.75rem;
+				font-weight: 600;
+				color: var(--accent);
+				text-decoration: none;
+				margin-top: 4px;
+				padding: 2px 8px;
+				border-radius: 12px;
+				border: 1px solid currentColor;
+				transition:
+					background 0.15s ease,
+					color 0.15s ease;
+			}
+			a.train-type:hover,
+			a.train-type:focus-visible {
+				background: var(--accent);
+				color: var(--card);
 			}
 
 			.spinner {
@@ -860,6 +882,18 @@
 			let worker
 			worker = new Worker('src/worker.js', { type: 'module' })
 
+			// Surface uncaught worker errors (e.g. module-load failures) in the UI.
+			worker.addEventListener('error', (e) => {
+				statusSpinnerEl.hidden = true
+				setI18n(
+					statusTextEl,
+					'status.error',
+					[],
+					e.message || 'Worker failed to load',
+				)
+				submitBtn.disabled = false
+			})
+
 			// Keep map of pending requests if needed for ignoring stale responses
 			const pendingRequests = new Map()
 
@@ -1164,6 +1198,20 @@
 				return toLocalISOString(time)
 			})()
 
+			/** Human-readable label for each train type code. */
+			const TRAIN_TYPE_LABELS = {
+				ter: 'TER',
+				ic: 'Intercités',
+				icn: 'Intercités de Nuit',
+				ice: 'ICE',
+				lyr: 'Lyria',
+				ouigo: 'OUIGO',
+				tgv: 'TGV INOUI',
+				eurostar: 'Eurostar',
+				nav: 'Navette TGV',
+				tt: 'TramTrain',
+			}
+
 			function renderResults(results) {
 				resultsEl.innerHTML = ''
 				if (!results || results.length === 0) {
@@ -1265,6 +1313,26 @@
 
 						citem.appendChild(fromto)
 						citem.appendChild(connDur)
+
+						if (c.type) {
+							const isTerBookable =
+								c.type === 'ter' && c.dep_ter_id && c.arr_ter_id
+							const typeBadge = document.createElement(
+								isTerBookable ? 'a' : 'span',
+							)
+							typeBadge.className = 'train-type'
+							if (isTerBookable) {
+								typeBadge.href = buildTerUrl(c)
+								typeBadge.target = '_blank'
+								typeBadge.rel = 'noopener noreferrer'
+								setI18n(typeBadge, 'ter.book')
+							} else {
+								typeBadge.textContent =
+									TRAIN_TYPE_LABELS[c.type] || c.type
+							}
+							fromto.appendChild(typeBadge)
+						}
+
 						connList.appendChild(citem)
 					})
 
@@ -1272,6 +1340,43 @@
 					item.appendChild(connList)
 					resultsEl.appendChild(item)
 				})
+			}
+
+			/**
+			 * Build a SNCF TER deep-link URL for a connexion leg.
+			 * The search state is LZ-compressed JSON, matching the TER website format.
+			 *
+			 * @param {{ from: string, to: string, start: string, dep_ter_id: string, arr_ter_id: string }} c
+			 * @returns {string}
+			 */
+			function buildTerUrl(c) {
+				const payload = {
+					originId: c.dep_ter_id,
+					origin: c.from,
+					originIsStopPlace: true,
+					destinationId: c.arr_ter_id,
+					destination: c.to,
+					destinationIsStopPlace: true,
+					passengers: [
+						{
+							id: crypto.randomUUID(),
+							age: null,
+							cardSubscriber: null,
+							cardRegionTrigram: null,
+						},
+					],
+					departureDate: new Date(c.start).getTime(),
+					isImmediateDeparture: false,
+					previousUrl: '/',
+				}
+				return (
+					'https://www.ter.sncf.com/bretagne/offers?search=' +
+					encodeURIComponent(
+						LZString.compressToEncodedURIComponent(
+							JSON.stringify(payload),
+						),
+					)
+				)
 			}
 
 			function formatDuration(mins) {

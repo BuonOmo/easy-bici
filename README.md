@@ -15,19 +15,29 @@ a Github Action.
 There are two test harnesses available, one in the browser and
 the other requiring nodejs installed.
 
-# Caveats
+# Roadmap
 
-- GTFS-RT is not used, and train schedules can be 1 day old. 
-
-# TODO
-
-- also filter stop_times in filter_bike_gtfs script
 - later we should consider adding bike connection directly in
   the trip search, since we know user has a bike!
 - we should also print results on a map rather than a list
-- fix responsive version title
-- make trips easy to buy afterwards with link to the corresponding train search (or something...?)
+- make trips easy to buy afterwards with link to the corresponding train search:
+  - [x] TER
+  - [ ] intercité
+  - [ ] ...
 - check that timetable.bin doesn't contain a timestamp that would always make it change
+- check some route types (it seems that there are some bus routes: do we want them?):
+  ```bash
+	$ cat data/gtfs/routes.txt | cut -d, -f6 | sort | uniq --count
+      4 0 # Tram, Streetcar, Light rail
+    558 2 # rail
+    172 3 # bus
+  ```
+- penalize intercité and tgv inoui as they are more complicated? https://www.sncf-connect.com/train/velo-a-bord
+
+## Facilitate buying trip for a user
+
+Some pricings are available on sncf open-data: https://data.sncf.com/explore/dataset/tarifs-intercites/information/
+Some websites seems easier than others to prefill such as 12train.com
 
 [^1]: https://arxiv.org/pdf/1703.05997
 [^2]: https://github.com/trainline-eu/csa-challenge

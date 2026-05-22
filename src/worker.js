@@ -105,6 +105,9 @@ function formatOption({ path, arrivalTime }, stopsById) {
 			to: to && to.stop_name ? to.stop_name : c.arr_stop,
 			start: new Date(c.dep_timestamp * 1000).toISOString(),
 			duration: legMins,
+			dep_ter_id: from ? from.ter_id || null : null,
+			arr_ter_id: to ? to.ter_id || null : null,
+			type: c.type || '',
 		}
 	})
 

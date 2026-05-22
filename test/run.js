@@ -62,7 +62,7 @@ try {
 	process.exit(1)
 }
 
-const { rawConnections, stopsByNorm, servicesByDate } = gtfs
+const { rawConnections, stopsById, stopsByNorm, servicesByDate } = gtfs
 
 // ── Build test context ────────────────────────────────────────────────────────
 
@@ -117,7 +117,13 @@ async function test(name, fn) {
 
 // ── Run all tests ─────────────────────────────────────────────────────────────
 
-await runTests(test, assert, { connections, stopsByNorm, dateStr, t0 })
+await runTests(test, assert, {
+	connections,
+	stopsById,
+	stopsByNorm,
+	dateStr,
+	t0,
+})
 
 // ── Summary ───────────────────────────────────────────────────────────────────
 
