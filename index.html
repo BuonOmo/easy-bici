@@ -1322,12 +1322,38 @@
 					const depVal = document.createElement('dd')
 					depVal.className = 'time-val'
 					depVal.textContent = fmtTime(departTime)
+					const daysDiff =
+						departTime && arrivalTime
+							? Math.round(
+									(new Date(
+										arrivalTime.getFullYear(),
+										arrivalTime.getMonth(),
+										arrivalTime.getDate(),
+									) -
+										new Date(
+											departTime.getFullYear(),
+											departTime.getMonth(),
+											departTime.getDate(),
+										)) /
+										86400000,
+								)
+							: 0
+
 					const arrTerm = document.createElement('dt')
 					arrTerm.className = 'time-label'
 					arrTerm.textContent = t('results.arr')
 					const arrVal = document.createElement('dd')
 					arrVal.className = 'time-val'
 					arrVal.textContent = fmtTime(arrivalTime)
+					if (daysDiff > 0) {
+						const daySup = document.createElement('sup')
+						daySup.textContent = '+' + daysDiff
+						daySup.title =
+							daysDiff === 1
+								? t('results.arr.next-day')
+								: t('results.arr.days-later', daysDiff)
+						arrVal.appendChild(daySup)
+					}
 					timeDl.appendChild(depTerm)
 					timeDl.appendChild(depVal)
 					timeDl.appendChild(arrTerm)

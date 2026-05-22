@@ -89,6 +89,8 @@ export const translations = {
 		'results.none': 'Aucun résultat.',
 		'results.dep': 'Dép',
 		'results.arr': 'Arr',
+		'results.arr.next-day': 'arrivée le lendemain',
+		'results.arr.days-later': (n) => `arrivée ${n} jours plus tard`,
 
 		// TER deep link
 		'ter.book': 'TER · Réserver →',
@@ -148,6 +150,8 @@ export const translations = {
 		'results.none': 'No results.',
 		'results.dep': 'Dep',
 		'results.arr': 'Arr',
+		'results.arr.next-day': 'arrival the next day',
+		'results.arr.days-later': (n) => `arrival ${n} days later`,
 
 		// TER deep link
 		'ter.book': 'TER · Book →',
