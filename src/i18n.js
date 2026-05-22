@@ -98,6 +98,12 @@ export const translations = {
 		'theme.to-dark': 'Passer en mode sombre',
 		'theme.to-light': 'Passer en mode clair',
 
+		// Footer
+		'footer.nav.aria': 'Liens du site',
+		'footer.about': 'À propos',
+		'footer.suggestions': 'Suggestions',
+		'footer.contact': 'Contact',
+
 		// Language switcher (shows the CURRENT language)
 		'lang.switch': 'FR',
 		'lang.switch.title': 'Switch to English',
@@ -146,6 +152,12 @@ export const translations = {
 		'theme.switch.title': 'Toggle light / dark theme',
 		'theme.to-dark': 'Switch to dark mode',
 		'theme.to-light': 'Switch to light mode',
+
+		// Footer
+		'footer.nav.aria': 'Site links',
+		'footer.about': 'About',
+		'footer.suggestions': 'Suggestions',
+		'footer.contact': 'Contact',
 
 		// Language switcher (shows the CURRENT language)
 		'lang.switch': 'EN',
