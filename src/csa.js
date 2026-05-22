@@ -177,6 +177,8 @@ export function runCSA(connections, origins, dests, t0) {
  *   − 20² Per change        (absolute penalty: –20 × (path.length - 1)²)
  *   + 50  Shorter duration  (normalised 0–50;  50 = shortest in pool)
  *   + 25  Closest departure (normalised 0–25;  25 = closest to t0 in pool)
+ *   − 30  TGV/IC trains     (absolute penalty: bike surcharge applies)
+ *   − 75  OUIGO trains      (absolute penalty: bike must be dismantled)
  *
  * @param {{ path: Array, departureTime: number, arrivalTime: number }} option
  * @param {number} t0  Original requested departure (Unix seconds)
@@ -216,7 +218,24 @@ function scoreOption(option, t0, stats) {
 	const offRange = maxOffset - minOffset
 	const offsetScore = offRange > 0 ? ((maxOffset - offset) / offRange) * 25 : 25
 
-	return arrivalScore + connectionPenalty + durationScore + offsetScore
+	// TGV INOUI / Intercités penalty: bike surcharge applies
+	const bikeChargePenalty = path.some(
+		(leg) => leg.type === 'tgv' || leg.type === 'ic',
+	)
+		? -30
+		: 0
+
+	// OUIGO penalty: dismantling the bike is required
+	const ouigoPenalty = path.some((leg) => leg.type === 'ouigo') ? -75 : 0
+
+	return (
+		arrivalScore +
+		connectionPenalty +
+		durationScore +
+		offsetScore +
+		bikeChargePenalty +
+		ouigoPenalty
+	)
 }
 
 /**
@@ -228,6 +247,8 @@ function scoreOption(option, t0, stats) {
  *   − 20  Per leg/train   (absolute)
  *   + 50  Shorter duration (normalised)
  *   + 25  Closest to requested departure (normalised)
+ *   − 30  TGV/IC trains   (absolute, bike surcharge applies)
+ *   − 75  OUIGO trains    (absolute, bike must be dismantled)
  *
  * @param {Array}    connections  Sorted by dep_timestamp
  * @param {string[]} origins

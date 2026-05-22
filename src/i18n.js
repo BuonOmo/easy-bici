@@ -93,6 +93,10 @@ export const translations = {
 		// TER deep link
 		'ter.book': 'TER · Réserver →',
 
+		// Train bike restrictions
+		'bike.charge': 'Supplément vélo obligatoire',
+		'bike.dismantle': 'Le vélo doit être démonté',
+
 		// Theme toggle (dynamic aria-label set in JS)
 		'theme.switch.title': 'Basculer clair / sombre',
 		'theme.to-dark': 'Passer en mode sombre',
@@ -147,6 +151,10 @@ export const translations = {
 
 		// TER deep link
 		'ter.book': 'TER · Book →',
+
+		// Train bike restrictions
+		'bike.charge': 'Bike fee required',
+		'bike.dismantle': 'Bike must be dismantled',
 
 		// Theme toggle
 		'theme.switch.title': 'Toggle light / dark theme',

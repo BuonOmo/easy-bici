@@ -65,6 +65,8 @@
 				--shadow: rgba(12, 18, 31, 0.06);
 				--glass: rgba(var(--ctp-latte-base-rgb), 0.85);
 				--error: var(--ctp-latte-red);
+				--warning: var(--ctp-latte-peach);
+				--danger: var(--ctp-latte-red);
 			}
 
 			/* Dark: Catppuccin macchiato */
@@ -79,6 +81,8 @@
 				--shadow: rgba(0, 0, 0, 0.32);
 				--glass: rgba(var(--ctp-macchiato-base-rgb), 0.7);
 				--error: var(--ctp-macchiato-red);
+				--warning: var(--ctp-macchiato-peach);
+				--danger: var(--ctp-macchiato-red);
 			}
 
 			/* Basic layout & components */
@@ -453,6 +457,12 @@
 				transition:
 					background 0.15s ease,
 					color 0.15s ease;
+			}
+			.train-type.bike-charge {
+				color: var(--warning);
+			}
+			.train-type.bike-dismantle {
+				color: var(--danger);
 			}
 			a.train-type:hover,
 			a.train-type:focus-visible {
@@ -1371,6 +1381,16 @@
 								isTerBookable ? 'a' : 'span',
 							)
 							typeBadge.className = 'train-type'
+							if (c.type === 'tgv' || c.type === 'ic') {
+								typeBadge.classList.add('bike-charge')
+								typeBadge.dataset.i18nTitle = 'bike.charge'
+								typeBadge.title = t('bike.charge')
+							}
+							if (c.type === 'ouigo') {
+								typeBadge.classList.add('bike-dismantle')
+								typeBadge.dataset.i18nTitle = 'bike.dismantle'
+								typeBadge.title = t('bike.dismantle')
+							}
 							if (isTerBookable) {
 								typeBadge.href = buildTerUrl(c)
 								typeBadge.target = '_blank'
