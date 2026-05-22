@@ -74,6 +74,15 @@
 #     uint16  trip_idx      (index; trips sorted lexicographically by trip_id)
 #     uint16  service_idx   (index into services array)
 #
+#   TER Stop Indices section (optional extension appended after Connections):
+#     uint16  num_ter_stops
+#     num_ter_stops × uint16  stop_idx  (index into the stops array)
+#
+#   Trip Types section (optional extension appended after TER Stop Indices):
+#     num_trips × uint8  type_code  (indexed by trip_idx; no leading count)
+#     type codes:  0=unknown  1=TER  2=IC  3=ICN  4=ICE  5=LYR
+#                  6=OGO     7=OUI  8=TRN  9=NAV  10=TT
+#
 # Usage:
 #   ruby scripts/build_timetable.rb
 
@@ -100,6 +109,21 @@ OUTPUT_META = File.join(DATA_DIR, 'meta.json')
 
 FORMAT_VERSION = 1
 MAX_UINT16     = 65_535
+
+# Maps the GTFS trip_id service code (extracted from "_F:CODE:") to a uint8
+# type code embedded in the Trip Types binary section.
+SERVICE_CODE_MAP = {
+  'TER' => 1,
+  'IC'  => 2,
+  'ICN' => 3,
+  'ICE' => 4,
+  'LYR' => 5,
+  'OGO' => 6,
+  'OUI' => 7,
+  'TRN' => 8,
+  'NAV' => 9,
+  'TT'  => 10,
+}.freeze
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -171,17 +195,21 @@ puts "          feed_version = #{feed_version}"
 puts 'Step 2/8  Reading stop parent map from stops.txt …'
 
 stop_parent = {}  # stop_id → parent_station_id  (nil when no parent)
+ter_stop_ids = Set.new  # numeric station IDs (String) with TER service
 
 CSV.foreach(STOPS_FILE, headers: true, encoding: 'bom|utf-8') do |row|
   sid    = row['stop_id'].to_s.strip
   parent = row['parent_station'].to_s.strip
   stop_parent[sid] = parent.empty? ? nil : parent
+  m = sid.match(/^StopPoint:OCETrain TER-(\d+)$/)
+  ter_stop_ids << m[1] if m
 end
 
 # Return the canonical station ID: the parent StopArea when one exists, else self.
 normalize_stop = ->(sid) { stop_parent.fetch(sid, nil) || sid }
 
 puts "          #{stop_parent.count { |_, v| v }} stop points mapped to a parent area"
+puts "          #{ter_stop_ids.size} TER stations found"
 
 # ---------------------------------------------------------------------------
 # Step 3 — Read trips.txt
@@ -194,7 +222,8 @@ puts "          #{stop_parent.count { |_, v| v }} stop points mapped to a parent
 
 puts 'Step 3/8  Reading trips.txt …'
 
-trip_service = {}  # trip_id (String) → service_id (String)
+trip_service    = {}  # trip_id (String) → service_id (String)
+trip_type_code  = {}  # trip_id (String) → uint8 type code
 
 CSV.foreach(TRIPS_FILE, headers: true, encoding: 'bom|utf-8') do |row|
   trip_id    = row['trip_id'].to_s.strip
@@ -202,6 +231,8 @@ CSV.foreach(TRIPS_FILE, headers: true, encoding: 'bom|utf-8') do |row|
   next if trip_id.empty?
 
   trip_service[trip_id] = service_id
+  m = trip_id.match(/_F:([A-Z]+):/)
+  trip_type_code[trip_id] = SERVICE_CODE_MAP[m[1]] || 0 if m
 end
 
 # Sorted service_id list used for both the binary section and index lookup.
@@ -214,7 +245,10 @@ trips_array = trip_service.keys.sort  # Array<String>
 trip_idx    = {}                      # trip_id → integer index
 trips_array.each_with_index { |t, i| trip_idx[t] = i }
 
+type_counts = trip_type_code.values.tally
+type_summary = SERVICE_CODE_MAP.filter_map { |name, code| "#{name}=#{type_counts[code] || 0}" }.join(' ')
 puts "          #{trip_service.size} trips, #{services_array.size} unique services"
+puts "          types: #{type_summary}"
 
 # ---------------------------------------------------------------------------
 # Step 3 — Read stop_times.txt line-by-line
@@ -501,6 +535,27 @@ File.open(OUTPUT_BIN, 'wb') do |f|
 
     f.write([dep_si, arr_si, conn[:dep_secs], conn[:arr_secs], ti, svi].pack('vvVVvv'))
   end
+
+  # ---- TER Stop Indices section (appended after Connections) ---------------
+  #
+  # Stores the indices (into the stops array) of stops that have Train TER
+  # service, so the JS parser can annotate them with ter_id without needing
+  # a separate ter_stops.json fetch.
+  #
+  #   uint16 LE  num_ter_stops
+  #   num_ter_stops × uint16 LE  stop_idx
+
+  ter_stop_indices = ter_stop_ids.filter_map { |numeric_id| stop_idx["StopArea:OCE#{numeric_id}"] }.sort
+  f.write([ter_stop_indices.size].pack('v'))
+  ter_stop_indices.each { |idx| f.write([idx].pack('v')) }
+
+  # ---- Trip Types section (appended after TER Stop Indices) ---------------
+  #
+  # Stores one uint8 type code per trip, indexed by trip_idx.  Trips whose
+  # trip_id does not match any known service code receive code 0 (unknown).
+  # See SERVICE_CODE_MAP for the full code → name mapping.
+
+  trips_array.each { |tid| f.write([trip_type_code.fetch(tid, 0)].pack('C')) }
 end
 
 bin_size = File.size(OUTPUT_BIN)
@@ -521,6 +576,7 @@ puts '  Build complete!'
 puts '=' * 62
 puts format('  %-22s %s (%.2f MB)', 'timetable.bin', bin_size, bin_size / 1_048_576.0)
 puts format('  %-22s %s', 'meta.json', JSON.generate({ 'version' => feed_version }))
+puts format('  %-22s %s', '(trip types)', type_summary)
 puts '  ' + '-' * 58
 puts format('  %-22s %d', 'Stops',            stops_array.size)
 puts format('  %-22s %d', 'Services',          services_array.size)

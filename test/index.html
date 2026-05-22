@@ -141,7 +141,7 @@
 			// ── Load GTFS and build test context ───────────────────────────────────
 
 			// GTFS data is served relative to the project root, one level up.
-			const { rawConnections, stopsByNorm, servicesByDate } =
+			const { rawConnections, stopsById, stopsByNorm, servicesByDate } =
 				await loadGTFS('../data')
 
 			const dateStr = findTestDate(servicesByDate)
@@ -165,6 +165,7 @@
 
 			await runTests(test, assert, {
 				connections,
+				stopsById,
 				stopsByNorm,
 				dateStr,
 				t0,

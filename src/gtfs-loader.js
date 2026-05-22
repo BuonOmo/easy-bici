@@ -78,6 +78,15 @@ export function normalizeName(name) {
  *     uint16 LE  trip_idx
  *     uint16 LE  service_idx
  *
+ *   TER Stop Indices section (optional extension appended after Connections):
+ *     uint16 LE  num_ter_stops
+ *     num_ter_stops × uint16 LE  stop_idx
+ *
+ *   Trip Types section (optional extension appended after TER Stop Indices):
+ *     num_trips × uint8  type_code  (indexed by trip_idx; no leading count)
+ *     type codes:  0=unknown  1=TER  2=IC  3=ICN  4=ICE  5=LYR
+ *                  6=OGO     7=OUI  8=TRN  9=NAV  10=TT
+ *
  * @param {ArrayBuffer} arrayBuffer
  * @returns {{
  *   rawConnections: Array,
@@ -85,6 +94,13 @@ export function normalizeName(name) {
  *   stopsByNorm:    Map<string, string[]>,
  *   servicesByDate: Map<string, Set<string>>
  * }}
+ *
+ * Each stop object in `stopsById` may carry an optional `ter_id` string
+ * (the numeric SNCF station code, e.g. `"87747006"`) when the binary
+ * was built with a TER Stop Indices section and the stop has Train TER service.
+ *
+ * Each raw connection carries a `type` string (e.g. `"ter"`, `"tgv"`) when
+ * the binary includes a Trip Types section.
  * @throws {Error} if magic bytes are not "VTER" or format_version !== 1
  */
 export function parseTimetable(arrayBuffer) {
@@ -114,7 +130,7 @@ export function parseTimetable(arrayBuffer) {
 
 	const numStops = view.getUint16(8, true)
 	const numServices = view.getUint16(10, true)
-	// numTrips              = view.getUint16(12, true)  — count only, strings not stored
+	const numTrips = view.getUint16(12, true)
 	// reserved              = view.getUint16(14, true)
 	const numConnections = view.getUint32(16, true)
 	const numCalendarEntries = view.getUint32(20, true)
@@ -232,6 +248,48 @@ export function parseTimetable(arrayBuffer) {
 	}
 	// rawConnections is already sorted by dep_secs per the VTER spec
 
+	// ── Parse TER stop indices (optional extension after Connections) ──────────
+
+	if (offset < view.byteLength) {
+		const numTerStops = view.getUint16(offset, true)
+		offset += 2
+		for (let i = 0; i < numTerStops; i++) {
+			const stopIdx = view.getUint16(offset, true)
+			offset += 2
+			const stopId = stopIdsByIdx[stopIdx]
+			const stop = stopsById.get(stopId)
+			if (stop) {
+				const m = stopId.match(/^StopArea:OCE(\d+)$/)
+				if (m) stop.ter_id = m[1]
+			}
+		}
+	}
+
+	// ── Parse trip types (optional extension after TER Stop Indices) ─────────
+
+	/** Maps uint8 type code → type string (matches SERVICE_CODE_MAP in build_timetable.rb). */
+	const TRIP_TYPES = [
+		'', // 0 = unknown
+		'ter', // 1
+		'ic', // 2
+		'icn', // 3
+		'ice', // 4
+		'lyr', // 5
+		'ouigo', // 6
+		'tgv', // 7 (OUI → TGV INOUI)
+		'eurostar', // 8 (TRN → Eurostar / ex-Thalys)
+		'nav', // 9
+		'tt', // 10
+	]
+
+	if (offset + numTrips <= view.byteLength) {
+		const typeBytes = new Uint8Array(arrayBuffer, offset, numTrips)
+		for (const rc of rawConnections) {
+			rc.type = TRIP_TYPES[typeBytes[rc.trip_id]] || ''
+		}
+		offset += numTrips
+	}
+
 	return { rawConnections, stopsById, stopsByNorm, servicesByDate }
 }
 
@@ -270,7 +328,7 @@ export async function loadGTFS(basePath) {
  * @param {Map}    servicesByDate   From parseTimetable() / loadGTFS()
  * @param {string} queryDate        YYYYMMDD
  * @returns {Array}  Connections sorted by dep_timestamp, each:
- *                   { dep_stop, arr_stop, dep_timestamp, arr_timestamp, trip_id }
+ *                   { dep_stop, arr_stop, dep_timestamp, arr_timestamp, trip_id, type }
  */
 export function materializeConnections(
 	rawConnections,
@@ -293,6 +351,7 @@ export function materializeConnections(
 			dep_timestamp: midnight + rc.dep_secs,
 			arr_timestamp: midnight + rc.arr_secs,
 			trip_id: rc.trip_id,
+			type: rc.type || '',
 		})
 	}
 

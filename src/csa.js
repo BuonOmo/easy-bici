@@ -156,6 +156,7 @@ export function runCSA(connections, origins, dests, t0) {
 			dep_timestamp: first.dep_timestamp,
 			arr_stop: last.arr_stop,
 			arr_timestamp: last.arr_timestamp,
+			type: first.type || '',
 		})
 		i = j
 	}
