@@ -32,6 +32,7 @@ import { dirname, join } from 'path'
 
 import { parseTimetable, materializeConnections } from '../src/gtfs-loader.js'
 import { findTestDate, runTests } from './journey-tests.js'
+import { runUnitTests } from './unit-tests.js'
 
 // ── ANSI helpers ──────────────────────────────────────────────────────────────
 
@@ -114,6 +115,12 @@ async function test(name, fn) {
 		}
 	}
 }
+
+// ── Run unit tests (no timetable required) ────────────────────────────────────
+
+await runUnitTests(test, assert)
+
+console.log()
 
 // ── Run all tests ─────────────────────────────────────────────────────────────
 
