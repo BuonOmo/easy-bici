@@ -79,7 +79,7 @@
 #   Trip Types section (optional extension appended after TER Stop Indices):
 #     num_trips × uint8  type_code  (indexed by trip_idx; no leading count)
 #     type codes:  0=unknown  1=TER  2=IC  3=ICN  4=ICE  5=LYR
-#                  6=OGO     7=OUI  8=TRN  9=NAV  10=TT
+#                  6=OGO     7=OUI  8=TRN  9=NAV  10=TT  11=CTE
 #
 # Usage:
 #   ruby scripts/build_timetable.rb
@@ -105,8 +105,8 @@ OUTPUT_BIN  = File.join(DATA_DIR, 'timetable.bin')
 FORMAT_VERSION = 1
 MAX_UINT16     = 65_535
 
-# Maps the GTFS trip_id service code (extracted from "_F:CODE:") to a uint8
-# type code embedded in the Trip Types binary section.
+# Maps the GTFS trip_id service code (extracted from "_F:CODE:" or "_R:CODE:") to a
+# uint8 type code embedded in the Trip Types binary section.
 SERVICE_CODE_MAP = {
   'TER' => 1,
   'IC'  => 2,
@@ -118,6 +118,7 @@ SERVICE_CODE_MAP = {
   'TRN' => 8,
   'NAV' => 9,
   'TT'  => 10,
+  'CTE' => 11,
 }.freeze
 
 # ---------------------------------------------------------------------------
@@ -165,13 +166,13 @@ end
 puts 'Step 1/7  Reading stop parent map from stops.txt …'
 
 stop_parent = {}  # stop_id → parent_station_id  (nil when no parent)
-ter_stop_ids = Set.new  # numeric station IDs (String) with TER service
+ter_stop_ids = Set.new  # numeric station IDs (String) with TER or Car TER service
 
 CSV.foreach(STOPS_FILE, headers: true, encoding: 'bom|utf-8') do |row|
   sid    = row['stop_id'].to_s.strip
   parent = row['parent_station'].to_s.strip
   stop_parent[sid] = parent.empty? ? nil : parent
-  m = sid.match(/^StopPoint:OCETrain TER-(\d+)$/)
+  m = sid.match(/^StopPoint:OCE(?:Train|Car) TER-(\d+)$/)
   ter_stop_ids << m[1] if m
 end
 
@@ -201,7 +202,7 @@ CSV.foreach(TRIPS_FILE, headers: true, encoding: 'bom|utf-8') do |row|
   next if trip_id.empty?
 
   trip_service[trip_id] = service_id
-  m = trip_id.match(/_F:([A-Z]+):/)
+  m = trip_id.match(/_[FR]:([A-Z]+):/)
   trip_type_code[trip_id] = SERVICE_CODE_MAP[m[1]] || 0 if m
 end
 

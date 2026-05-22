@@ -1273,6 +1273,7 @@
 
 			/** Human-readable label for each train type code. */
 			const TRAIN_TYPE_LABELS = {
+				unknown: '?',
 				ter: 'TER',
 				ic: 'Intercités',
 				icn: 'Intercités de Nuit',
@@ -1283,6 +1284,7 @@
 				eurostar: 'Eurostar',
 				nav: 'Navette TGV',
 				tt: 'TramTrain',
+				car_ter: 'Car TER',
 			}
 
 			function renderResults(results) {
@@ -1415,7 +1417,9 @@
 
 						if (c.type) {
 							const isTerBookable =
-								c.type === 'ter' && c.dep_ter_id && c.arr_ter_id
+								(c.type === 'ter' || c.type === 'car_ter') &&
+								c.dep_ter_id &&
+								c.arr_ter_id
 							const typeBadge = document.createElement(
 								isTerBookable ? 'a' : 'span',
 							)
@@ -1434,7 +1438,12 @@
 								typeBadge.href = buildTerUrl(c)
 								typeBadge.target = '_blank'
 								typeBadge.rel = 'noopener noreferrer'
-								setI18n(typeBadge, 'ter.book')
+								setI18n(
+									typeBadge,
+									c.type === 'car_ter'
+										? 'car-ter.book'
+										: 'ter.book',
+								)
 							} else {
 								typeBadge.textContent =
 									TRAIN_TYPE_LABELS[c.type] || c.type
