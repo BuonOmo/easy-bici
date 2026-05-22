@@ -1360,10 +1360,6 @@
 			function renderResults(results) {
 				resultsEl.innerHTML = ''
 				if (!results || results.length === 0) {
-					const empty = document.createElement('li')
-					empty.className = 'muted'
-					empty.textContent = t('results.none')
-					resultsEl.appendChild(empty)
 					return
 				}
 
