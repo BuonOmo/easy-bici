@@ -34,7 +34,6 @@ the other requiring nodejs installed.
     558 2 # rail
     172 3 # bus
   ```
-- penalize intercité and tgv inoui as they are more complicated? https://www.sncf-connect.com/train/velo-a-bord
 
 ## Facilitate buying trip for a user
 

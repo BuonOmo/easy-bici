@@ -38,3 +38,10 @@
 - Try making the minimal possible diff. Do not change code style if already existing.
 - Avoid deadcode.
 - Think generic first, specific only if mandatory.
+- Refactor first, add only if mandatory.
+
+# README
+
+- It contains some important information, consider it
+- You should remove items from the `Roadmap` section once
+  you complete them. Or remind the user to do so.

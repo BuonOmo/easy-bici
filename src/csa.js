@@ -22,6 +22,14 @@
 
 import { MIN_CONNECTION_TIME_SECONDS } from './parameters.js'
 
+// ── Train-type constants ───────────────────────────────────────────────────────
+
+/** Trains requiring a bike fee (surcharge per leg). */
+const FEE_TYPES = new Set(['ic', 'icn', 'ice'])
+
+/** Trains requiring the bike to be dismantled/bagged (penalty per leg). */
+const DISMANTLE_TYPES = new Set(['ouigo'])
+
 /** Binary search: first index i where connections[i].dep_timestamp >= t0. */
 function lowerBound(connections, t0) {
 	let lo = 0,
@@ -33,6 +41,8 @@ function lowerBound(connections, t0) {
 	}
 	return lo
 }
+
+// ── CSA core ──────────────────────────────────────────────────────────────────
 
 /**
  * Run the Connection Scan Algorithm to find the earliest-arrival journey.
@@ -168,6 +178,8 @@ export function runCSA(connections, origins, dests, t0) {
 	}
 }
 
+// ── Scoring ───────────────────────────────────────────────────────────────────
+
 /**
  * Score a single journey against the rest of the candidate pool.
  * Higher score → better option.
@@ -218,15 +230,13 @@ function scoreOption(option, t0, stats) {
 	const offRange = maxOffset - minOffset
 	const offsetScore = offRange > 0 ? ((maxOffset - offset) / offRange) * 25 : 25
 
-	// TGV INOUI / Intercités penalty: bike surcharge applies
-	const bikeChargePenalty = path.some(
-		(leg) => leg.type === 'tgv' || leg.type === 'ic',
-	)
-		? -30
-		: 0
+	// Fee penalty: bike surcharge applies (per leg)
+	const bikeChargePenalty =
+		-30 * path.filter((leg) => FEE_TYPES.has(leg.type)).length
 
-	// OUIGO penalty: dismantling the bike is required
-	const ouigoPenalty = path.some((leg) => leg.type === 'ouigo') ? -75 : 0
+	// Dismantle penalty: bike must be bagged/dismantled (per leg)
+	const dismantlePenalty =
+		-75 * path.filter((leg) => DISMANTLE_TYPES.has(leg.type)).length
 
 	return (
 		arrivalScore +
@@ -234,21 +244,50 @@ function scoreOption(option, t0, stats) {
 		durationScore +
 		offsetScore +
 		bikeChargePenalty +
-		ouigoPenalty
+		dismantlePenalty
 	)
 }
 
+// ── findOptions ───────────────────────────────────────────────────────────────
+
 /**
- * Collect every feasible journey from t0 until no more exist, then return
- * the top maxResults options ranked by a multi-criteria score.
+ * Collect every reachable journey from t0 by iterating runCSA until the
+ * timetable is exhausted.
+ *
+ * @param {Array}    connections
+ * @param {string[]} origins
+ * @param {string[]} dests
+ * @param {number}   t0
+ * @returns {Array<{ path: Array, departureTime: number, arrivalTime: number }>}
+ */
+function collectAllJourneys(connections, origins, dests, t0) {
+	const journeys = []
+	let cur = t0
+	while (true) {
+		const result = runCSA(connections, origins, dests, cur)
+		if (result.path === null) break
+		journeys.push(result)
+		cur = result.departureTime + 1
+	}
+	return journeys
+}
+
+/**
+ * Collect feasible journeys from t0 using three progressively inclusive
+ * connection filters, then return the top maxResults options ranked by score.
+ *
+ * Running three separate CSA passes ensures bike-fine journeys always appear
+ * in the candidate pool, even when faster options involving less bike-friendly
+ * services exist. Any type not in FEE_TYPES or DISMANTLE_TYPES is considered
+ * bike-fine and included in the first (most restrictive) pass.
  *
  * Scoring criteria (see scoreOption):
- *   +100  Earlier arrival (normalised)
- *   − 20  Per leg/train   (absolute)
- *   + 50  Shorter duration (normalised)
- *   + 25  Closest to requested departure (normalised)
- *   − 30  TGV/IC trains   (absolute, bike surcharge applies)
- *   − 75  OUIGO trains    (absolute, bike must be dismantled)
+ *   +100  Earlier arrival      (normalised)
+ *   − 20² Per change           (absolute: −20 × (legs−1)²)
+ *   + 50  Shorter duration     (normalised)
+ *   + 25  Closest departure    (normalised)
+ *   − 30  Fee-type legs        (per leg: bike surcharge applies)
+ *   − 75  Dismantle-type legs  (per leg: bike must be dismantled)
  *
  * @param {Array}    connections  Sorted by dep_timestamp
  * @param {string[]} origins
@@ -258,19 +297,36 @@ function scoreOption(option, t0, stats) {
  * @returns {Array<{ path: Array, departureTime: number, arrivalTime: number, score: number }>}
  */
 export function findOptions(connections, origins, dests, t0, maxResults = 10) {
-	// 1. Collect every reachable journey from t0 until the timetable is exhausted.
+	// 1. Run CSA with three filtered connection sets and merge results.
+	//    Pass 1: bike-fine trains (neither a fee nor a dismantle type)
+	//    Pass 2: adds fee-type trains (bike surcharge)
+	//    Pass 3: all trains (adds dismantle-type trains)
+	const fineConns = connections.filter(
+		(c) => !FEE_TYPES.has(c.type) && !DISMANTLE_TYPES.has(c.type),
+	)
+	const feeConns = connections.filter((c) => !DISMANTLE_TYPES.has(c.type))
+	const allConns = connections
+
+	const candidates = [
+		...collectAllJourneys(fineConns, origins, dests, t0),
+		...collectAllJourneys(feeConns, origins, dests, t0),
+		...collectAllJourneys(allConns, origins, dests, t0),
+	]
+
+	// 2. Deduplicate by path fingerprint (same trips at the same times).
+	const seen = new Set()
 	const all = []
-	let cur = t0
-	while (true) {
-		const result = runCSA(connections, origins, dests, cur)
-		if (result.path === null) break
-		all.push(result)
-		cur = result.departureTime + 1
+	for (const j of candidates) {
+		const key = j.path.map((l) => `${l.trip_id}:${l.dep_timestamp}`).join('|')
+		if (!seen.has(key)) {
+			seen.add(key)
+			all.push(j)
+		}
 	}
 
 	if (all.length === 0) return []
 
-	// 2. Compute pool-wide min/max for normalised scoring.
+	// 3. Compute pool-wide min/max for normalised scoring.
 	let minArrival = Infinity,
 		maxArrival = -Infinity
 	let minDuration = Infinity,
