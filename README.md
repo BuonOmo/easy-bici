@@ -31,6 +31,9 @@ the other requiring nodejs installed.
   - [x] TER
   - [ ] intercité
   - [ ] ...
+- Check for train prices somehow, and show them.
+- Contact 1.2.Train to see if there is a way to generate
+  links with prepopulated urls.
 - check some route types (it seems that there are some bus routes: do we want them?):
   ```bash
 	$ cat data/gtfs/routes.txt | cut -d, -f6 | sort | uniq --count

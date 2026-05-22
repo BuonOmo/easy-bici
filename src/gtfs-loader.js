@@ -85,7 +85,7 @@ export function normalizeName(name) {
  *   Trip Types section (optional extension appended after TER Stop Indices):
  *     num_trips × uint8  type_code  (indexed by trip_idx; no leading count)
  *     type codes:  0=unknown  1=TER  2=IC  3=ICN  4=ICE  5=LYR
- *                  6=OGO     7=OUI  8=TRN  9=NAV  10=TT
+ *                  6=OGO     7=OUI  8=TRN  9=NAV  10=TT  11=CTE
  *
  * @param {ArrayBuffer} arrayBuffer
  * @returns {{
@@ -269,7 +269,7 @@ export function parseTimetable(arrayBuffer) {
 
 	/** Maps uint8 type code → type string (matches SERVICE_CODE_MAP in build_timetable.rb). */
 	const TRIP_TYPES = [
-		'', // 0 = unknown
+		'unknown', // 0 = unknown
 		'ter', // 1
 		'ic', // 2
 		'icn', // 3
@@ -280,6 +280,7 @@ export function parseTimetable(arrayBuffer) {
 		'eurostar', // 8 (TRN → Eurostar / ex-Thalys)
 		'nav', // 9
 		'tt', // 10
+		'car_ter', // 11
 	]
 
 	if (offset + numTrips <= view.byteLength) {
