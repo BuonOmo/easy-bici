@@ -36,12 +36,15 @@ import { findOptions } from '../src/csa.js'
  */
 export function findTestDate(servicesByDate) {
 	const firstDate = servicesByDate.keys().min()
+	const lastDate = servicesByDate.keys().max()
+	const today = new Date()
 	if (!firstDate) throw new Error('No dates found in timetable')
 	let date = new Date(
 		+firstDate.slice(0, 4),
 		+firstDate.slice(4, 6) - 1,
 		+firstDate.slice(6, 8),
 	)
+	if (date < today) date = today
 	switch (date.getDay()) {
 		case 0: // Sunday
 			date.setDate(date.getDate() + 1)
@@ -50,7 +53,10 @@ export function findTestDate(servicesByDate) {
 			date.setDate(date.getDate() + 2)
 			break
 	}
-	return date.toISOString().slice(0, 10).replace(/-/g, '')
+	const iso = date.toISOString().slice(0, 10).replace(/-/g, '')
+	if (iso > lastDate) throw new Error(`Dataset is older than today, update it!`)
+
+	return iso
 }
 
 /**
