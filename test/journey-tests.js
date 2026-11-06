@@ -28,29 +28,29 @@ import { findMatchingStops } from '../src/gtfs-loader.js'
 import { findOptions } from '../src/csa.js'
 
 /**
- * Pick the weekday nearest to the middle of the feed's date range.
+ * Pick the weekday nearest to the beginning of the feed's date range.
  * Using a dynamic date means tests keep passing after the daily GTFS update.
  *
  * @param {Map<string, Set<string>>} servicesByDate
  * @returns {string} YYYYMMDD
  */
 export function findTestDate(servicesByDate) {
-	const dates = [...servicesByDate.keys()].sort()
-	if (dates.length === 0) throw new Error('No dates found in timetable')
-	const mid = Math.floor(dates.length / 2)
-	for (let off = 0; off < dates.length; off++) {
-		for (const idx of [mid + off, mid - off]) {
-			if (idx < 0 || idx >= dates.length) continue
-			const d = dates[idx]
-			const day = new Date(
-				+d.slice(0, 4),
-				+d.slice(4, 6) - 1,
-				+d.slice(6, 8),
-			).getDay() // 0 = Sun … 6 = Sat
-			if (day >= 1 && day <= 5) return d
-		}
+	const firstDate = servicesByDate.keys().min()
+	if (!firstDate) throw new Error('No dates found in timetable')
+	let date = new Date(
+		+firstDate.slice(0, 4),
+		+firstDate.slice(4, 6) - 1,
+		+firstDate.slice(6, 8),
+	)
+	switch (date.getDay()) {
+		case 0: // Sunday
+			date.setDate(date.getDate() + 1)
+			break
+		case 6: // Saturday
+			date.setDate(date.getDate() + 2)
+			break
 	}
-	return dates[mid] // fallback: any date
+	return date.toISOString().slice(0, 10).replace(/-/g, '')
 }
 
 /**
