@@ -35,8 +35,9 @@ import { findOptions } from '../src/csa.js'
  * @returns {string} YYYYMMDD
  */
 export function findTestDate(servicesByDate) {
-	const firstDate = servicesByDate.keys().min()
-	const lastDate = servicesByDate.keys().max()
+	const sortedDates = Array.from(servicesByDate.keys()).sort()
+	const firstDate = sortedDates[0]
+	const lastDate = sortedDates[sortedDates.length - 1]
 	const today = new Date()
 	if (!firstDate) throw new Error('No dates found in timetable')
 	let date = new Date(
