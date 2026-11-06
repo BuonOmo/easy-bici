@@ -38,14 +38,16 @@ export function findTestDate(servicesByDate) {
 	const sortedDates = Array.from(servicesByDate.keys()).sort()
 	const firstDate = sortedDates[0]
 	const lastDate = sortedDates[sortedDates.length - 1]
-	const today = new Date()
+	const tomorrow = new Date()
+	tomorrow.setDate(tomorrow.getDate() + 1)
+	tomorrow.setHours(0, 0, 0, 0)
 	if (!firstDate) throw new Error('No dates found in timetable')
 	let date = new Date(
 		+firstDate.slice(0, 4),
 		+firstDate.slice(4, 6) - 1,
 		+firstDate.slice(6, 8),
 	)
-	if (date < today) date = today
+	if (date < tomorrow) date = tomorrow
 	switch (date.getDay()) {
 		case 0: // Sunday
 			date.setDate(date.getDate() + 1)
