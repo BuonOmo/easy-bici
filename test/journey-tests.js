@@ -32,9 +32,9 @@ import { findOptions } from '../src/csa.js'
  * Using a dynamic date means tests keep passing after the daily GTFS update.
  *
  * @param {Map<string, Set<string>>} servicesByDate
- * @returns {string} YYYYMMDD
+ * @returns {Promise<string>} YYYYMMDD
  */
-export function findTestDate(servicesByDate) {
+export async function findTestDate(servicesByDate) {
 	const sortedDates = Array.from(servicesByDate.keys()).sort()
 	const firstDate = sortedDates[0]
 	const lastDate = sortedDates[sortedDates.length - 1]
@@ -48,18 +48,34 @@ export function findTestDate(servicesByDate) {
 		+firstDate.slice(6, 8),
 	)
 	if (date < tomorrow) date = tomorrow
-	switch (date.getDay()) {
-		case 0: // Sunday
-			date.setDate(date.getDate() + 1)
-			break
-		case 6: // Saturday
-			date.setDate(date.getDate() + 2)
-			break
+	while (
+		date.getDay() === 0 ||
+		date.getDay() === 6 ||
+		(await isHoliday(date))
+	) {
+		date.setDate(date.getDate() + 1)
 	}
 	const iso = date.toISOString().slice(0, 10).replace(/-/g, '')
 	if (iso > lastDate) throw new Error(`Dataset is older than today, update it!`)
 
 	return iso
+}
+
+let holidaysPromise
+function fetchHolidays() {
+	if (!holidaysPromise) {
+		holidaysPromise = fetch(
+			'https://calendrier.api.gouv.fr/jours-feries/metropole.json',
+		)
+			.then((res) => res.json())
+			.then((holidays) => new Set(Object.keys(holidays)))
+	}
+	return holidaysPromise
+}
+
+async function isHoliday(date) {
+	const holidays = await fetchHolidays()
+	return holidays.has(date.toISOString().slice(0, 10))
 }
 
 /**

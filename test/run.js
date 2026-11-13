@@ -66,7 +66,7 @@ const { rawConnections, stopsById, stopsByNorm, servicesByDate } = gtfs
 
 // ── Build test context ────────────────────────────────────────────────────────
 
-const dateStr = findTestDate(servicesByDate)
+const dateStr = await findTestDate(servicesByDate)
 const connections = materializeConnections(
 	rawConnections,
 	servicesByDate,

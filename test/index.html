@@ -144,7 +144,7 @@
 			const { rawConnections, stopsById, stopsByNorm, servicesByDate } =
 				await loadGTFS('../data')
 
-			const dateStr = findTestDate(servicesByDate)
+			const dateStr = await findTestDate(servicesByDate)
 			const connections = materializeConnections(
 				rawConnections,
 				servicesByDate,
